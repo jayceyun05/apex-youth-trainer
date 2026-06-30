@@ -1008,8 +1008,28 @@
       padding: 14px 16px;
       font-size: 11.5px;
       line-height: 1.6;
-      margin: 0 18px 6px
+      margin: 0 18px 6px;
+      max-height: 200px;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.3s ease, opacity 0.3s ease, font-size 0.3s ease;
+      cursor: pointer;
     }
+    .disc-full.collapsed {
+      max-height: 28px;
+      padding: 6px 16px;
+      font-size: 10px;
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .disc-full::after {
+      content: ' (탭하여 펼치기)';
+      font-size: 10px;
+      color: var(--mut2);
+      display: none;
+    }
+    .disc-full.collapsed::after { display: inline; }
 
     /* 또래 비교 대시보드 */
     .dash {
@@ -1810,21 +1830,21 @@ ${benchBlock}
       const diet = f.diet || '', tools = f.tools || '';
 
       const SPORT = {
-        '야구': { mech: { title: '거울 섀도우 피칭 + 티배팅 메커니즘', detail: '밸런스 홀드 3초 × 6회, 하프스윙 15구' }, neuro: '넘버 볼·컬러콜 동체시력(근·원거리 초점 전환 2분)', prime: { title: '영점 조준 — 티배팅 목적타 + 튜빙밴드 견갑 예열', detail: '하프스윙 15구, 밴드 15회' }, video: { name: '야구 동체시력 훈련', q: 'baseball vision training tennis ball numbers youth' } },
-        '축구': { mech: { title: '콘 어질리티 + 인스텝 볼 컨트롤', detail: '5-10-5 셔틀 4회, 볼 터치 2분' }, neuro: '신호 반응 컷팅(시그널 컷 10회)', prime: { title: '동적 스트레칭 + 짧은 패스 리듬업', detail: '왕복 2회, 인·아웃 패스 2분' }, video: { name: '유소년 풋워크 어질리티', q: 'youth soccer agility ladder footwork drills' } },
-        '농구': { mech: { title: '점프 착지 안정화 + 볼 핸들링', detail: '박스 드롭-랜딩 8회, 양손 드리블 2분' }, neuro: '주변시야 패스 리액션(시그널 패스 10회)', prime: { title: '동적 스트레칭 + 레이업 리듬업', detail: '왕복 2회, 풋워크 2분' }, video: { name: '점프 착지 무릎 보호', q: 'youth basketball jump landing mechanics knee safety' } },
-        '배구': { mech: { title: '오버헤드 안정화 + 스파이크 폼', detail: '밴드 외회전 15회, 어프로치 점프 8회' }, neuro: '토스 추적 리시브 반응(추적 2분)', prime: { title: '견갑 예열 + 어프로치 리듬업', detail: '밴드 15회, 점프 6회' }, video: { name: '배구 어깨 안정화', q: 'volleyball shoulder stability band exercises youth' } },
-        '테니스': { mech: { title: '스플릿 스텝 + 그라운드스트로크 폼', detail: '스플릿 스텝 10회, 섀도우 스윙 2분' }, neuro: '좌우 반응 풋워크(반응 스텝 10회)', prime: { title: '동적 스트레칭 + 미니 랠리 리듬업', detail: '왕복 2회, 라켓 워밍업 2분' }, video: { name: '주니어 테니스 풋워크', q: 'junior tennis footwork split step drills' } },
+        '야구': { mech: { title: '넘버드 테니스볼 소프트토스 + 티배팅 메커니즘', detail: '밸런스 홀드 3초 × 6회, 하프스윙 15구' }, neuro: '넘버볼 동체시력 드릴(근·원거리 초점 전환 2분)', prime: { title: '영점 조준 — 티배팅 목적타 + 튜빙밴드 견갑 예열', detail: '하프스윙 15구, 밴드 15회' }, video: { name: 'Numbered Tennis Ball Hitting Drill – Baseball Vision Training', q: 'numbered tennis ball hitting drill baseball vision training youth' } },
+        '축구': { mech: { title: '어질리티 래더 풋워크 + 인스텝 볼 컨트롤', detail: '5-10-5 셔틀 4회, 볼 터치 2분' }, neuro: '신호 반응 컷팅(시그널 컷 10회)', prime: { title: '동적 스트레칭 + 짧은 패스 리듬업', detail: '왕복 2회, 인·아웃 패스 2분' }, video: { name: 'Agility Ladder Footwork Drills – Youth Soccer Training', q: 'youth soccer agility ladder footwork drills for kids' } },
+        '농구': { mech: { title: '박스 드롭 랜딩 메커닉스 + 볼 핸들링', detail: '박스 드롭-랜딩 8회, 양손 드리블 2분' }, neuro: '주변시야 패스 리액션(시그널 패스 10회)', prime: { title: '동적 스트레칭 + 레이업 리듬업', detail: '왕복 2회, 풋워크 2분' }, video: { name: 'Jump Landing Mechanics & Knee Safety – Youth Basketball ACL Prevention', q: 'youth basketball jump landing mechanics ACL prevention depth drop drills' } },
+        '배구': { mech: { title: '밴드 외회전 + 어프로치 점프 스파이크 폼', detail: '밴드 외회전 15회, 어프로치 점프 8회' }, neuro: '토스 추적 리시브 반응(추적 2분)', prime: { title: '견갑 예열 + 어프로치 리듬업', detail: '밴드 15회, 점프 6회' }, video: { name: 'Hitter-6 Shoulder Band Warm-Up – Volleyball Rotator Cuff Stability', q: 'volleyball hitter 6 band warm up shoulder rotator cuff youth' } },
+        '테니스': { mech: { title: '스플릿 스텝 + 그라운드스트로크 풋워크', detail: '스플릿 스텝 10회, 섀도우 스윙 2분' }, neuro: '좌우 반응 풋워크(반응 스텝 10회)', prime: { title: '동적 스트레칭 + 미니 랠리 리듬업', detail: '왕복 2회, 라켓 워밍업 2분' }, video: { name: 'Tennis Split Step Footwork Drills – Junior Players', q: 'tennis split step drills juniors footwork progression kids' } },
       };
       const sp = SPORT[sport] || SPORT['야구'];
 
       const REHAB = {
-        '발목': { title: '발목 안정화 — 알파벳 드로잉 + 한발 균형', detail: '알파벳 각 1회, 한발 서기 30초×2 (재활 1순위)', mob: '발목 모빌리티', video: { name: '발목 안정화 재활', q: 'ankle sprain rehab stability exercises youth' } },
-        '어깨': { title: '견갑 안정화 — 밴드 외회전 + 월 슬라이드', detail: '외회전 15회×2, 월 슬라이드 12회 (재활 1순위)', mob: '흉추 회전', video: { name: '어깨 회전근 재활', q: 'rotator cuff band external rotation rehab youth' } },
-        '무릎': { title: '무릎 보호 — 박스 드롭 착지 + 글루트 브리지', detail: '드롭 착지 8회, 브리지 12회×2 (재활 1순위)', mob: '고관절 모빌리티', video: { name: '무릎 안정화 착지', q: 'knee landing mechanics youth athlete rehab' } },
-        '손목': { title: '손목 강화 — 리스트 컬·익스텐션 + 그립', detail: '각 15회×2, 그립 30초 (재활 1순위)', mob: '전완 스트레칭', video: { name: '손목 강화 재활', q: 'wrist strengthening rehab exercises' } },
-        '팔꿈치': { title: '팔꿈치 보호 — 전완 이심성 강화', detail: '리버스 컬 12회×2 (재활 1순위, 과사용 주의)', mob: '전완 스트레칭', video: { name: '팔꿈치 과사용 예방', q: 'youth elbow overuse prevention forearm exercises' } },
-        '허리': { title: '허리 안정화 — 데드버그 + 버드독', detail: '각 10회×2, 코어 중립 유지 (재활 1순위)', mob: '고관절·흉추 모빌리티', video: { name: '코어 허리 안정화', q: 'dead bug bird dog core stability low back' } },
+        '발목': { title: '발목 안정화 — 알파벳 드로잉 + 한발 균형', detail: '알파벳 각 1회, 한발 서기 30초×2 (재활 1순위)', mob: '발목 모빌리티', video: { name: 'Ankle Sprain Rehab – Alphabet Tracing & Single Leg Balance Stability Exercises', q: 'ankle sprain rehab alphabet tracing single leg balance stability exercises youth' } },
+        '어깨': { title: '견갑 안정화 — 밴드 외회전 + 월 슬라이드', detail: '외회전 15회×2, 월 슬라이드 12회 (재활 1순위)', mob: '흉추 회전', video: { name: 'Rotator Cuff Rehab – Band External Rotation & Wall Slide Exercises', q: 'rotator cuff rehab band external rotation wall slide scapular exercises youth' } },
+        '무릎': { title: '무릎 보호 — 박스 드롭 착지 + 글루트 브리지', detail: '드롭 착지 8회, 브리지 12회×2 (재활 1순위)', mob: '고관절 모빌리티', video: { name: 'Knee Landing Mechanics & Glute Bridge – Youth Athlete ACL Rehab', q: 'knee landing mechanics glute bridge youth ACL rehab injury prevention' } },
+        '손목': { title: '손목 강화 — 리스트 컬·익스텐션 + 그립', detail: '각 15회×2, 그립 30초 (재활 1순위)', mob: '전완 스트레칭', video: { name: 'Wrist Curl & Extension Strengthening – Forearm Rehab Exercises', q: 'wrist curl extension strengthening forearm rehab grip exercises athlete' } },
+        '팔꿈치': { title: '팔꿈치 보호 — 전완 이심성 강화', detail: '리버스 컬 12회×2 (재활 1순위, 과사용 주의)', mob: '전완 스트레칭', video: { name: 'Elbow Overuse Prevention – Reverse Curl & Eccentric Forearm Strengthening Youth', q: 'youth elbow overuse prevention reverse curl eccentric forearm strengthening' } },
+        '허리': { title: '허리 안정화 — 데드버그 + 버드독', detail: '각 10회×2, 코어 중립 유지 (재활 1순위)', mob: '고관절·흉추 모빌리티', video: { name: 'Dead Bug & Bird-Dog – Core Stability for Low Back Pain Relief', q: 'dead bug bird dog core stability low back pain relief exercises' } },
       };
       const injuries = [];
       if (/발목|아킬레스|ankle/i.test(med)) injuries.push('발목');
@@ -1886,8 +1906,8 @@ ${benchBlock}
       const videos = [];
       if (inj0) videos.push(inj0.video);
       videos.push(sp.video);
-      videos.push({ name: '전신 가동성 워밍업', q: 'youth athlete dynamic mobility warmup routine' });
-      videos.push({ name: '코어 안정화 (데드버그·플랭크)', q: 'dead bug plank core stability kids exercises' });
+      videos.push({ name: 'Dynamic Mobility Warm-Up Routine – Youth Athletes (Walking Lunge, Leg Swing, Inchworm)', q: 'youth athlete dynamic mobility warm up routine walking lunge leg swing inchworm' });
+      videos.push({ name: 'Dead Bug & Bird-Dog Core Stability – Kids & Youth Athletes', q: 'dead bug bird dog core stability exercises kids youth athlete' });
 
       return { analysis, weekday: [block1, block2, block3], weekendWarmup, weekendRecovery, nutrition, videos: videos.slice(0, 4) };
     }
@@ -1989,6 +2009,24 @@ ${benchBlock}
       $('res-disc').textContent = '본 루틴은 ' + who + ' 참고용 가이드이며 의학적 진단·처방이 아닙니다. ' + errword + ', 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
 
       showScreen('result');
+
+      /* ===== 면책 문구 스크롤 축소 인터랙션 ===== */
+      const discEl = $('res-disc');
+      const scrollEl = document.querySelector('#s-result .scroll');
+      if (discEl && scrollEl) {
+        discEl.classList.remove('collapsed');
+        let discCollapsed = false;
+        discEl.onclick = function() {
+          discCollapsed = !discCollapsed;
+          discEl.classList.toggle('collapsed', discCollapsed);
+        };
+        scrollEl.onscroll = function() {
+          if (!discCollapsed && scrollEl.scrollTop > 60) {
+            discCollapsed = true;
+            discEl.classList.add('collapsed');
+          }
+        };
+      }
     }
 
     /* ===== 피드백 — Google Forms 연동 ===== */
@@ -2018,10 +2056,12 @@ ${benchBlock}
                      : (STATE.form && STATE.form.sport ? STATE.form.sport : '알수없음');
         const rating = STATE.fb === 'up' ? '적합해요👍' : STATE.fb === 'down' ? '아쉬워요👎' : '미선택';
         const text   = STATE.fbText || '';
+        /* 세션 토큰 — 개별 응답 식별용 (이름/IP 미포함, 익명) */
+        const token  = (window.crypto && crypto.randomUUID) ? crypto.randomUUID().slice(0,8) : Math.random().toString(36).slice(2,10);
         const body = new URLSearchParams();
         body.append('entry.333198545', sport);
         body.append('entry.1334590574', rating);
-        body.append('entry.690514673', text);
+        body.append('entry.690514673', (text ? text + ' ' : '') + '[sid:' + token + ']');
         fetch(FB_FORM_ACTION, {
           method: 'POST',
           mode: 'no-cors',
