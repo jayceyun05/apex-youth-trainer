@@ -1008,39 +1008,30 @@
       border-radius: 4px;
       margin: 0 18px 6px;
       overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), padding 0.3s ease, opacity 0.3s ease;
+      max-height: 300px;
+      opacity: 1;
     }
-    .disc-toggle {
+    .disc-full.disc-collapsed {
+      max-height: 36px;
+      opacity: 0.55;
+      cursor: pointer;
+    }
+    .disc-full.disc-collapsed:hover { opacity: 0.85; }
+    .disc-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 8px 14px;
-      cursor: pointer;
-      font-size: 11px;
+      gap: 6px;
+      padding: 9px 14px 6px;
+      font-size: 10.5px;
       font-weight: 700;
       color: var(--mut);
-      user-select: none;
-      gap: 8px;
+      letter-spacing: 0.01em;
     }
-    .disc-toggle:hover { background: #eef2f7; }
-    .disc-toggle .disc-arrow {
-      font-size: 9px;
-      transition: transform 0.3s ease;
-      flex-shrink: 0;
-    }
-    .disc-full.disc-closed .disc-arrow { transform: rotate(180deg); }
     .disc-body {
       padding: 0 14px 12px;
       font-size: 11.5px;
       line-height: 1.65;
-      max-height: 300px;
-      overflow: hidden;
-      transition: max-height 0.35s ease, padding 0.3s ease, opacity 0.3s ease;
-      opacity: 1;
-    }
-    .disc-full.disc-closed .disc-body {
-      max-height: 0;
-      padding: 0 14px;
-      opacity: 0;
     }
 
     /* 또래 비교 대시보드 */
@@ -1435,7 +1426,36 @@
               <div class="field"><label>주말 운동 시간 (분)</label><input id="f-weekendTime" type="number" placeholder="40">
               </div>
             </div>
-            <div class="field"><label>보유 장비</label><input id="f-tools" placeholder="예: 배트, 테니스공, 튜빙밴드, 전신거울"></div>
+            <div class="field"><label>보유 장비</label>
+              <input id="f-tools" placeholder="예: 배트, 테니스공, 튜빙밴드, 전신거울" list="tools-suggestions" autocomplete="off">
+              <datalist id="tools-suggestions">
+                <option value="철봉">
+                <option value="악력기">
+                <option value="줄넘기">
+                <option value="짐볼">
+                <option value="폼롤러">
+                <option value="튜빙밴드">
+                <option value="저항밴드">
+                <option value="요가매트">
+                <option value="전신거울">
+                <option value="스텝박스">
+                <option value="덤벨">
+                <option value="케틀벨">
+                <option value="배트">
+                <option value="티볼">
+                <option value="야구공">
+                <option value="스펀지공">
+                <option value="테니스공">
+                <option value="축구공">
+                <option value="농구공">
+                <option value="배구공">
+                <option value="라켓">
+                <option value="콘(고깔)">
+                <option value="어질리티 래더">
+                <option value="철봉, 줄넘기, 악력기">
+                <option value="폼롤러, 튜빙밴드, 요가매트">
+              </datalist>
+            </div>
             <div class="field"><label>훈련 목표</label><input id="f-goal" placeholder="예: 회전력·동체시력 향상"></div>
           </div>
 
@@ -1762,12 +1782,14 @@
       $('res-mode-tag').style.color = 'var(--accent)';
       var html = '<div style="padding:14px 18px 6px">';
       html += '<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>본인 AI 계정에서 생성된 결과입니다. 이 앱은 해당 결과를 저장하거나 전송하지 않습니다.</span></div>';
-      html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><p style="white-space:pre-wrap;line-height:1.75;font-size:13px">' + esc(txt) + '</p></div>';
+      html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><div style="line-height:1.75;font-size:13px">' + mdToHtml(txt) + '</div></div>';
       html += dashboardHTML(p);
       html += '</div>';
       $('res-scroll').innerHTML = html;
-      $('res-disc').textContent = '본 루틴은 사용자가 선택한 외부 AI 서비스에서 생성한 참고용 가이드이며 의학적 진단·처방이 아닙니다. 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
+      var discText = '본 루틴은 사용자가 선택한 외부 AI 서비스에서 생성한 참고용 가이드이며 의학적 진단·처방이 아닙니다. 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
+      $('res-disc').innerHTML = '<div class="disc-header">📋 면책 고지</div><div class="disc-body">' + esc(discText) + '</div>';
       showScreen('result');
+      initDiscScroll();
     }
 
     /* 복사용 프롬프트 — 이름 제외 + 식별정보 마스킹 + 또래 비교 데이터 주입 */
@@ -2022,17 +2044,80 @@ ${benchBlock}
       $('res-disc').innerHTML =
         '<div class="disc-toggle" onclick="toggleDisc()" id="disc-toggle-btn">'
         + '📋 면책 고지 (탭하여 접기/펼치기)<span class="disc-arrow">▲</span></div>'
-        + '<div class="disc-body">' + esc(discText) + '</div>';
+      $('res-disc').innerHTML = '<div class="disc-header">📋 면책 고지</div><div class="disc-body">' + esc(discText) + '</div>';
 
       showScreen('result');
-      /* 진입 시 면책 문구 펼침 상태로 초기화 */
-      const discEl = $('res-disc');
-      if (discEl) discEl.classList.remove('disc-closed');
+      initDiscScroll();
     }
-    function toggleDisc() {
-      const el = $('res-disc');
-      if (el) el.classList.toggle('disc-closed');
+    /* 면책 문구 스크롤 접기 */
+    function initDiscScroll() {
+      var discEl = $('res-disc');
+      var scrollEl = document.querySelector('#s-result .scroll');
+      if (!discEl || !scrollEl) return;
+      discEl.classList.remove('disc-collapsed');
+      discEl.onclick = null;
+      scrollEl.onscroll = null;
+      /* 스크롤 60px 이상 내려가면 자동 축소 */
+      scrollEl.onscroll = function() {
+        if (scrollEl.scrollTop > 60) {
+          discEl.classList.add('disc-collapsed');
+          discEl.onclick = function() {
+            discEl.classList.remove('disc-collapsed');
+            discEl.onclick = null;
+          };
+        } else {
+          discEl.classList.remove('disc-collapsed');
+          discEl.onclick = null;
+        }
+      };
     }
+    /* 마크다운 → HTML 미니 파서 (AI 붙여넣기 결과용) */
+    function mdToHtml(md) {
+      if (!md) return '';
+      var lines = md.split(/\r?\n/);
+      var out = [], inList = false;
+      for (var i = 0; i < lines.length; i++) {
+        var l = lines[i];
+        /* 헤딩 */
+        var hm = l.match(/^(#{1,4})\s+(.+)$/);
+        if (hm) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          var lv = hm[1].length;
+          var sz = lv === 1 ? '16px' : lv === 2 ? '14.5px' : lv === 3 ? '13.5px' : '12.5px';
+          var fw = lv <= 2 ? '800' : '700';
+          var mt = lv <= 2 ? '18px' : '10px';
+          out.push('<div style="font-size:' + sz + ';font-weight:' + fw + ';color:var(--navy);margin:' + mt + ' 0 4px">' + inlineFormat(hm[2]) + '</div>');
+          continue;
+        }
+        /* 수평선 */
+        if (/^---+$/.test(l.trim())) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          out.push('<hr style="border:none;border-top:1px solid var(--line);margin:10px 0">');
+          continue;
+        }
+        /* 목록 */
+        var lim = l.match(/^(\*|-|\d+\.)\s+(.+)$/);
+        if (lim) {
+          if (!inList) { out.push('<ul style="padding-left:18px;margin:4px 0">'); inList = true; }
+          out.push('<li style="margin:2px 0;font-size:13px;line-height:1.6">' + inlineFormat(lim[2]) + '</li>');
+          continue;
+        }
+        if (inList) { out.push('</ul>'); inList = false; }
+        /* 빈 줄 */
+        if (!l.trim()) { out.push('<div style="height:6px"></div>'); continue; }
+        /* 일반 문단 */
+        out.push('<p style="font-size:13px;line-height:1.7;margin:2px 0">' + inlineFormat(l) + '</p>');
+      }
+      if (inList) out.push('</ul>');
+      return out.join('');
+    }
+    function inlineFormat(s) {
+      return esc(s)
+        .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code style="background:#f0f4f8;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>');
+    }
+    function toggleDisc() { /* 호환성 유지 — 사용 안 함 */ }
 
     /* ===== 피드백 — Google Forms 연동 ===== */
     const FB_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLScaXRMf5RonxCMBsMGjN7tQ2YRXRMoDIjN--Hlq7c6hABoRmw/formResponse';
