@@ -4,7 +4,7 @@ var SPREADSHEET_ID = '1pIyjoneh2V3O6LnPOxsZDGMs2m1un0_fFtgPEcTrSHg';
 
 // ── 시트(탭) 이름 상수 지정 (정확한 띄어쓰기 반영) ──
 var SHEET_CONSENT  = '부모동의기록';      // 부모 동의 로그가 기록되는 탭
-var SHEET_FEEDBACK = '설문지 응답 시트 1';  // 구글 폼의 실제 응답(원본 데이터)이 들어오는 탭 (구글 폼 기본 이름)
+var SHEET_FEEDBACK = '설문지 응답 시트1';  // 구글 폼의 실제 응답(원본 데이터)이 들어오는 탭 (구글 폼 기본 이름)
 var SHEET_SUMMARY  = '설문지 응답 시트2';   // 원본 데이터를 읽어와서 예쁜 요약 대시보드를 그릴 탭
 
 // ── 1. 보호자 동의 로그 수신 ──────────────────────
