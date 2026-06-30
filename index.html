@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX 유소년 트레이닝 (Beta)</title>
+<!--
+  유소년 맞춤형 트레이닝 솔루션 — 통합본 v1
+  · 베타 프로토타입(claude.ai 디자인)의 UI/UX·규칙 엔진을 순수 HTML/CSS/JS 단일 파일로 이식.
+  · React/Babel/번들(22MB) 제거 → 의존성 0, 더블클릭 실행, 어디서나 동작.
+
+  [보안 정책]
+  · 무저장: localStorage/sessionStorage/쿠키/파일 미사용. 입력은 메모리 변수(STATE)에만.
+    완료·뒤로·창 종료 시 즉시 폐기(wipe).
+  · 비식별: AI 전송 시 이름 제외 + 연락처/주민번호/이메일 자동 마스킹(maskPII).
+  · 전송 최소화·동의: AI 트랙 생성 직전 1회 동의. HTTPS가 전송 구간 보안 담당.
+  · 암호화는 본 구조(무저장+AI는 평문 필요)에서 실효가 없어 적용하지 않음(설계 결정).
+-->
+<style>
+  :root{
+    --accent:#ff6b35; --accent-soft:#fff0e9;
+    --navy:#0f2942; --navy2:#173a5c; --navy3:#21507d;
+    --green:#0e9f6e; --green-soft:#e7f7ef;
+    --ink:#0f2942; --ink2:#3f5366; --ink3:#54657a; --mut:#7c8b9b; --mut2:#9aa8b6;
+    --line:#e9eef3; --line2:#dde4ec; --field:#fbfcfe;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Pretendard',system-ui,-apple-system,'Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:radial-gradient(120% 90% at 50% 0%,#eef3f8 0%,#dbe3ec 60%,#ccd7e2 100%)}
+  @keyframes pulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  ::-webkit-scrollbar{width:0;height:0}
+
+  .card{width:100%;max-width:452px;height:min(880px,calc(100vh - 40px));background:#f6f8fb;border-radius:32px;
+    box-shadow:0 30px 80px -20px rgba(15,41,66,.4),0 0 0 1px rgba(255,255,255,.6) inset;overflow:hidden;
+    position:relative;display:flex;flex-direction:column}
+  .screen{flex:1;display:flex;flex-direction:column;min-height:0}
+  .scroll{flex:1;overflow-y:auto}
+  [hidden]{display:none!important}
+
+  /* 헤더 (네이비 그라데이션) */
+  .hero{padding:32px 28px 24px;background:linear-gradient(165deg,var(--navy) 0%,var(--navy2) 58%,var(--navy3) 100%);color:#fff;position:relative;overflow:hidden}
+  .hero .blob{position:absolute;top:-70px;right:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(255,107,53,.3),transparent 70%)}
+  .brandrow{display:flex;align-items:center;gap:9px;position:relative;z-index:1}
+  .logo{width:32px;height:32px;border-radius:9px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px}
+  .brand{font-weight:700;font-size:14.5px}
+  .pill{margin-left:auto;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);padding:4px 9px;border-radius:999px}
+  .hero h1{font-size:23px;line-height:1.34;font-weight:800;letter-spacing:-.02em;margin-top:20px;position:relative;z-index:1}
+  .hero h1 .hl{color:var(--accent)}
+  .hero p{margin-top:11px;font-size:12.5px;line-height:1.6;color:#b9c8d8;position:relative;z-index:1}
+
+  /* 모드 카드 */
+  .pad{padding:18px;display:flex;flex-direction:column;gap:13px}
+  .mode{background:#fff;border-radius:20px;padding:17px}
+  .mode.ai{border:1.5px solid #ffd9c7;box-shadow:0 4px 14px -8px rgba(255,107,53,.4)}
+  .mode.rule{border:1.5px solid #b9e6d3;box-shadow:0 4px 14px -8px rgba(14,159,110,.35)}
+  .mode-top{display:flex;align-items:center;gap:10px}
+  .mode-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .mode.ai .mode-ic{background:var(--accent-soft)} .mode.rule .mode-ic{background:var(--green-soft)}
+  .mode-name{font-weight:800;font-size:15.5px;color:var(--navy)}
+  .mode-tag{font-size:11px;font-weight:700;margin-top:2px}
+  .mode.ai .mode-tag{color:var(--accent)} .mode.rule .mode-tag{color:var(--green)}
+  .pt{display:flex;gap:8px;align-items:flex-start;margin-top:7px}
+  .tagchip{font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;flex-shrink:0}
+  .tagchip.pro{color:var(--green);background:var(--green-soft)} .tagchip.note{color:#d9772e;background:#fff0e6}
+  .pt span.txt{font-size:12px;color:#5e7186;line-height:1.5} .pt b{color:var(--ink2)}
+  .go{margin-top:14px;color:#fff;text-align:center;border-radius:12px;padding:12px;font-size:14px;font-weight:800;cursor:pointer}
+  .mode.ai .go{background:var(--accent)} .mode.rule .go{background:var(--green)}
+  .oneline{display:flex;align-items:center;gap:8px;background:#eef2f7;border-radius:12px;padding:11px 13px;font-size:11.5px;color:#6b7d8f;line-height:1.5}
+  .oneline b{color:#54657a}
+  .note-card{display:flex;gap:9px;align-items:flex-start;background:#fff;border:1px solid #e4ebf2;border-radius:14px;padding:14px 15px;font-size:11.5px;color:#6b7d8f;line-height:1.6}
+  .note-card b{color:#54657a}
+
+  /* 폼 */
+  .fhdr{padding:16px 22px 13px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  .iconbtn{background:#f1f5f9;border:none;width:34px;height:34px;border-radius:11px;cursor:pointer;font-size:16px;color:var(--ink2);flex-shrink:0}
+  .fhdr-title{flex:1}
+  .fhdr-title .t{font-weight:800;font-size:15.5px;color:var(--navy)}
+  .fhdr-title .s{font-size:11px;font-weight:700}
+  .smallbtn{background:#f1f5f9;color:var(--ink2);border:none;padding:8px 11px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0}
+  .formbody{padding:18px 22px 26px}
+  .seg{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--accent);margin:22px 0 12px}
+  .seg:first-child{margin-top:0}
+  .fields{display:flex;flex-direction:column;gap:12px}
+  .frow{display:flex;gap:11px}
+  .field{flex:1}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+  .field label .dim{color:var(--mut2);font-weight:500}
+  .field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1px solid var(--line2);border-radius:12px;font-size:15px;background:var(--field);color:var(--navy);font-family:inherit}
+  .field textarea{resize:vertical;min-height:60px}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);background:#fff}
+  .bmiline{font-size:12px;color:var(--mut);min-height:16px}
+  .secnote{display:flex;gap:9px;align-items:flex-start;background:#eef6f1;border:1px solid #cde9da;border-radius:12px;padding:12px 13px;margin-top:16px;font-size:11.5px;color:#43705c;line-height:1.55}
+  .ack{display:flex;gap:11px;align-items:flex-start;background:#fff;border:1px solid #e4ebf2;border-radius:14px;padding:14px;margin-top:18px;cursor:pointer}
+  .ackbox{width:22px;height:22px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;border:1.5px solid #cdd7e1;background:#fff}
+  .ack.on .ackbox{background:var(--accent);border-color:var(--accent)}
+  .ack span.txt{font-size:12px;color:#5e7186;line-height:1.55} .ack b{color:var(--ink2)}
+  .genbtn{margin-top:14px;color:#fff;border:none;border-radius:16px;padding:16px;font-size:15.5px;font-weight:800;cursor:pointer;width:100%;font-family:inherit;background:var(--accent);box-shadow:0 12px 30px -10px rgba(255,107,53,.55)}
+  .genbtn.off{background:#eef2f7;color:var(--mut2);cursor:not-allowed;box-shadow:none}
+  .genhint{text-align:center;font-size:11px;color:#b0bcc8;margin-top:8px}
+
+  /* 생성 중 */
+  .gen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;background:var(--navy);color:#fff;text-align:center}
+  .dots{display:flex;gap:9px;margin-bottom:26px}
+  .dots span{width:13px;height:13px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite}
+  .dots span:nth-child(2){animation-delay:.2s} .dots span:nth-child(3){animation-delay:.4s}
+  .gen .gt{font-size:18px;font-weight:800}
+  .gen .gs{font-size:13.5px;color:#9fb0c2;margin-top:10px;line-height:1.6;max-width:280px;white-space:pre-line}
+
+  /* 결과 */
+  .disc-badge{display:flex;gap:9px;align-items:flex-start;background:#fff7ed;border:1px solid #f6d9b0;border-radius:16px;padding:14px 15px;margin-bottom:16px;font-size:12px;color:#7a5a2e;line-height:1.6}
+  .disc-badge b{color:#7a5a2e}
+  .block{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px;margin-bottom:16px}
+  .block .bt{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:6px}
+  .block p{font-size:13px;color:var(--ink3);line-height:1.68}
+  .sechead{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .sechead .bar{width:6px;height:18px;border-radius:3px}
+  .sechead .nm{font-weight:800;font-size:15px;color:var(--navy)}
+  .sechead .tm{font-size:12px;color:var(--mut)}
+  .subhead{font-size:11.5px;font-weight:700;color:var(--green);margin-bottom:8px}
+  .steps{display:flex;flex-direction:column;gap:9px;margin-bottom:18px}
+  .step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 15px;display:flex;gap:13px}
+  .step .min{flex-shrink:0;width:46px;text-align:center}
+  .step .min .n{font-size:19px;font-weight:700}
+  .step .min .u{font-size:10px;color:var(--mut2)}
+  .step .body{flex:1;border-left:1px solid #eef2f6;padding-left:13px}
+  .step .ph{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:2px}
+  .step .ti{font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.4}
+  .step .de{font-size:12px;color:var(--mut);margin-top:3px}
+  .nutri{background:var(--accent-soft);border-radius:16px;padding:15px;margin-bottom:16px}
+  .nutri .nt{font-size:12.5px;font-weight:800;color:var(--accent);margin-bottom:5px}
+  .nutri p{font-size:12.5px;color:#7a4a2e;line-height:1.6}
+  .vidhead{font-weight:800;font-size:14px;color:var(--navy);margin-bottom:10px}
+  .vids{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+  .vid{text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px}
+  .vid .pl{width:34px;height:34px;border-radius:9px;background:#fce8e8;display:flex;align-items:center;justify-content:center;color:#e02424;font-size:14px}
+  .vid .vn{flex:1;font-size:13px;font-weight:700;color:var(--navy)}
+  .vid .yt{font-size:11px;color:var(--mut2)}
+  .fb{background:var(--navy);border-radius:20px;padding:20px;color:#fff}
+  .fb .ft{font-size:14.5px;font-weight:800}
+  .fb .fs{font-size:12px;color:#9fb0c2;margin-top:5px;line-height:1.5}
+  .fbrow{display:flex;gap:10px;margin-top:15px}
+  .fbbtn{flex:1;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#dbe6f0;border-radius:13px;padding:13px;font-size:13.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .fbbtn.up.on{border-color:#3ddc97;background:rgba(61,220,151,.16);color:#3ddc97}
+  .fbbtn.down.on{border-color:#ffb37a;background:rgba(255,107,53,.16);color:#ffb37a}
+  .fbtext{width:100%;margin-top:11px;padding:13px;border:none;border-radius:13px;font-size:13.5px;background:rgba(255,255,255,.1);color:#fff;font-family:inherit;resize:vertical;min-height:60px}
+  .fbsend{width:100%;margin-top:11px;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+  .fbdone{margin-top:16px;background:rgba(255,255,255,.08);border-radius:14px;padding:18px;text-align:center;font-size:13.5px;font-weight:700;color:#3ddc97;animation:fadeUp .3s}
+  /* 내보내기 버튼 */
+  .export-row{display:flex;gap:8px;margin:8px 18px 4px}
+  .expbtn{flex:1;border:none;border-radius:12px;padding:11px 6px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;line-height:1.3}
+  .expbtn.copy{background:#eef2ff;color:#2c4a8f;border:1px solid #c5d3f0}
+  .expbtn.print{background:#edfaf3;color:#0e7a55;border:1px solid #b0dfc7}
+  .expbtn.txt{background:#f5f5f5;color:#454f5b;border:1px solid #dde3ec}
+  .export-note{font-size:10.5px;color:#9aa8b6;text-align:center;margin:2px 18px 6px;line-height:1.4}
+  .export-msg{font-size:12px;font-weight:700;text-align:center;margin:0 18px 4px;color:var(--green);min-height:18px}
+  /* 인쇄·PDF */
+  @media print{
+    body{background:#fff!important;padding:0!important}
+    .card{box-shadow:none!important;border-radius:0!important;height:auto!important;max-width:100%!important}
+    .fhdr,.wipebtn,.disc-full,.export-row,.export-note,.export-msg,#modal{display:none!important}
+    #s-intro,#s-form,#s-prompt,#s-gen{display:none!important}
+    #s-result{display:flex!important}
+    .scroll{overflow:visible!important;height:auto!important}
+  }
+
+  .wipebtn{margin:14px 18px 20px;background:#0f2942;color:#fff;border:1px solid #1c3a57;border-radius:16px;padding:15px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+
+  .disc-full{background:#f7f9fa;border-left:4px solid var(--mut);color:#5d6d7e;border-radius:4px;padding:14px 16px;font-size:11.5px;line-height:1.6;margin:0 18px 6px}
+
+  /* 또래 비교 대시보드 */
+  .dash{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px;margin-bottom:16px}
+  .dash-h{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:2px}
+  .dash-sub{font-size:11px;color:var(--mut);font-weight:600}
+  .dbar{margin-top:13px}
+  .dbar-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin-bottom:5px;gap:8px}
+  .dbar-lab{font-weight:700;color:var(--ink2)}
+  .dbar-val{font-weight:700;color:var(--navy);text-align:right}
+  .dbar-track{background:#eef2f6;border-radius:6px;height:9px;margin-bottom:4px;overflow:hidden}
+  .dbar-fill{height:100%;border-radius:6px;min-width:2px;transition:width .4s}
+  .dbar-fill.player{background:var(--accent)}
+  .dbar-fill.avg{background:#c7d2dd}
+  .dbar-cap{font-size:10.5px;color:var(--mut)}
+  .dash-note{margin-top:13px;background:#fff7ed;border:1px solid #f6d9b0;border-radius:10px;padding:10px 12px;font-size:11px;color:#7a5a2e;line-height:1.55}
+
+  /* 검증 모달 (바텀시트) */
+  .modal-wrap{position:absolute;inset:0;background:rgba(15,41,66,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-end;z-index:50}
+  .modal{background:#fff;width:100%;border-radius:26px 26px 32px 32px;padding:26px 24px 24px;animation:fadeUp .3s}
+  .modal .mic{width:54px;height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:16px}
+  .modal .mt{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:9px}
+  .modal .mm{font-size:13.5px;color:var(--ink3);line-height:1.65}
+  .modal .md{background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:13px;font-size:12.5px;color:#5e7186;font-weight:600}
+  .modal .mrow{display:flex;gap:10px;margin-top:20px}
+  .mbtn{border:none;border-radius:14px;padding:15px;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit;width:100%}
+  .mbtn.dark{background:var(--navy);color:#fff} .mbtn.accent{background:var(--accent);color:#fff}
+  .mbtn.ghost{background:#fff;color:#8a98a6;border:1px solid var(--line2);font-size:13px;font-weight:700}
+  /* 프롬프트 복사 화면 */
+  .cp-text{width:100%;height:230px;border:1px solid var(--line2);border-radius:14px;padding:13px;font-size:12px;line-height:1.6;color:#39485a;background:#f8fafc;font-family:inherit;resize:vertical;box-sizing:border-box}
+  .cp-copy{width:100%;margin-top:10px;border:none;border-radius:14px;padding:15px;background:var(--accent);color:#fff;font-size:14.5px;font-weight:800;cursor:pointer;font-family:inherit}
+  .cp-copy.done{background:var(--green)}
+  .cp-links-h{margin:22px 0 8px;font-size:12px;font-weight:800;color:#8a98a6}
+  .cp-links{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .cp-link{display:flex;align-items:center;justify-content:center;padding:13px;border:1px solid var(--line2);border-radius:12px;text-decoration:none;color:var(--navy);font-weight:700;font-size:13px;background:#fff;cursor:pointer;font-family:inherit}
+  .cp-tip{margin-top:12px;font-size:12px;color:#6b7c8d;line-height:1.5;background:#f5f8fb;border-radius:10px;padding:10px 12px}
+  .cp-or{text-align:center;margin:22px 0 10px;font-size:12px;color:#9aa7b4;font-weight:700}
+  .cp-lite{width:100%;border:1px solid var(--line2);border-radius:14px;padding:14px;background:#fff;color:var(--green);font-size:14px;font-weight:800;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- ============ INTRO ============ -->
+  <section id="s-intro" class="screen">
+    <div class="scroll">
+      <div class="hero">
+        <div class="blob"></div>
+        <div class="brandrow"><div class="logo">A</div><span class="brand">APEX 유소년 트레이닝</span><span class="pill">BETA</span></div>
+        <h1>우리 아이 맞춤<br><span class="hl">운동 루틴</span>, 어떤 방식으로 받을까요?</h1>
+        <p>두 방식의 차이를 확인하고 선택하세요. 입력 정보는 어떤 경우에도 서버에 저장되지 않으며, 창을 닫으면 즉시 삭제됩니다.</p>
+      </div>
+      <div class="pad">
+        <div class="mode ai">
+          <div class="mode-top"><div class="mode-ic">✨</div><div style="flex:1"><div class="mode-name">본인 AI로 정밀 맞춤</div><div class="mode-tag">프롬프트 복사 → 내 AI 계정</div></div></div>
+          <div class="pt"><span class="tagchip pro">장점</span><span class="txt">맞춤 프롬프트를 만들어 드립니다. <b>ChatGPT·Gemini·Claude 등 본인 AI 계정</b>에 붙여넣어 가장 세밀한 루틴을 받으세요</span></div>
+          <div class="pt"><span class="tagchip note">유의</span><span class="txt"><b>이 앱은 정보를 외부로 전송하지 않습니다</b>(복사용 텍스트만 생성) · 이름 등 식별정보 제외 · 본인 AI 계정/가입 필요</span></div>
+          <div class="go" onclick="pickMode('ai')">이 방식으로 시작 →</div>
+        </div>
+        <div class="mode rule">
+          <div class="mode-top"><div class="mode-ic">🛡️</div><div style="flex:1"><div class="mode-name">오프라인 규칙 기반 <span style="font-size:12px;color:var(--green)">(라이트)</span></div><div class="mode-tag">외부 전송 없음 · 즉시 생성</div></div></div>
+          <div class="pt"><span class="tagchip pro">장점</span><span class="txt"><b>정보가 기기 밖으로 안 나감</b> · 인터넷 불필요 · 즉시 생성 · 결과가 일관됨</span></div>
+          <div class="pt"><span class="tagchip note">유의</span><span class="txt">정해진 규칙 안에서 구성되어 <b>세밀함·유연성은 다소 낮음</b></span></div>
+          <div class="go" onclick="pickMode('rule')">이 방식으로 시작 →</div>
+        </div>
+        <div class="oneline">💡 <span>한 줄 요약 — <b>가장 정밀</b>하게는 본인 AI(복사), <b>즉시·완전 비공개</b>로는 라이트.</span></div>
+        <div class="note-card">⚕️ <p>본 도구는 <b>베타 테스트용 참고 자료</b>이며 의학적 진단·처방을 대체하지 않습니다. 생성된 루틴은 오류가 있을 수 있으니, 적용 전 <b>스포츠의학 전문의·전문 트레이너의 확인</b>을 받으시길 권장합니다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FORM ============ -->
+  <section id="s-form" class="screen" hidden>
+    <div class="fhdr">
+      <button class="iconbtn" onclick="goIntro()">‹</button>
+      <div class="fhdr-title"><div class="t">선수 데이터 입력</div><div class="s" id="form-mode-tag"></div></div>
+      <button class="smallbtn" onclick="fillSample()">샘플</button>
+    </div>
+    <div class="scroll">
+      <div class="formbody">
+        <div class="seg">01 · 선수 기본정보</div>
+        <div class="fields">
+          <div class="field"><label>이름(별명)</label><input id="f-name" placeholder="Joshua"></div>
+          <div class="frow">
+            <div class="field"><label>만 나이</label><input id="f-age" type="number" placeholder="9" oninput="onVitals()"></div>
+            <div class="field"><label>성별</label><select id="f-sex"><option value="">선택</option><option value="남">남자</option><option value="여">여자</option></select></div>
+          </div>
+          <div class="frow">
+            <div class="field"><label>종목</label><select id="f-sport"><option>야구</option><option>축구</option><option>농구</option><option>배구</option><option>테니스</option></select></div>
+            <div class="field"><label>포지션</label><input id="f-position" placeholder="예: 투수 / 유격수"></div>
+          </div>
+        </div>
+
+        <div class="seg">02 · 신체 정보</div>
+        <div class="fields">
+          <div class="frow">
+            <div class="field"><label>키 (cm)</label><input id="f-height" type="number" placeholder="134" oninput="onVitals()"></div>
+            <div class="field"><label>몸무게 (kg)</label><input id="f-weight" type="number" placeholder="31" oninput="onVitals()"></div>
+          </div>
+          <div class="bmiline" id="f-bmi"></div>
+        </div>
+
+        <div class="seg">03 · 생활 패턴</div>
+        <div class="fields">
+          <div class="field"><label>수면 패턴</label><input id="f-sleep" placeholder="예: 밤 10시 취침, 아침 7시 기상"></div>
+          <div class="field"><label>팀 훈련 스케줄</label><input id="f-currentTraining" placeholder="예: 주 3회 총 16시간"></div>
+          <div class="field"><label>식습관</label><textarea id="f-diet" placeholder="예: 하루 3끼, 단것 선호 / 채소 기피"></textarea></div>
+        </div>
+
+        <div class="seg">04 · 건강 정보</div>
+        <div class="fields">
+          <div class="field"><label>영양제 섭취 <span class="dim">— 없으면 "없음"</span></label><textarea id="f-supplement" placeholder="예: 종합비타민, 오메가3"></textarea></div>
+          <div class="field"><label>부상 이력 <span class="dim">— 자세할수록 정확합니다</span></label><textarea id="f-injury" placeholder="예: 6개월 전 발목 염좌"></textarea></div>
+        </div>
+
+        <div class="seg">05 · 훈련 여건</div>
+        <div class="fields">
+          <div class="frow">
+            <div class="field"><label>평일 운동 시간 (분)</label><input id="f-weekdayTime" type="number" placeholder="20"></div>
+            <div class="field"><label>주말 운동 시간 (분)</label><input id="f-weekendTime" type="number" placeholder="40"></div>
+          </div>
+          <div class="field"><label>보유 장비</label><input id="f-tools" placeholder="예: 배트, 테니스공, 튜빙밴드, 전신거울"></div>
+          <div class="field"><label>훈련 목표</label><input id="f-goal" placeholder="예: 회전력·동체시력 향상"></div>
+        </div>
+
+        <div class="secnote">🔒 <span><b>개인정보 보호</b> — 입력 정보는 기기 메모리에만 임시 보관되며 창을 닫으면 즉시 삭제됩니다. AI 분석 시 이름은 제외되고 연락처·주민번호·이메일은 자동 가려집니다. <b>실명·주민번호·연락처는 입력하지 마세요.</b></span></div>
+
+        <div class="ack" id="ackrow" onclick="toggleAck()">
+          <div class="ackbox" id="ackbox"></div>
+          <span class="txt">위 안내를 확인했으며, 생성된 루틴은 <b>전문가 확인 전 참고용</b>으로만 사용하겠습니다. (만 14세 미만은 보호자 동의를 포함합니다.)</span>
+        </div>
+
+        <button class="genbtn off" id="genbtn" onclick="submitForm()">동의 후 생성할 수 있습니다</button>
+        <p class="genhint" id="genhint" hidden>동의에 체크하면 생성 버튼이 활성화됩니다</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROMPT (본인 AI로 받기) ============ -->
+  <section id="s-prompt" class="screen" hidden>
+    <div class="fhdr">
+      <button class="iconbtn" onclick="goForm()">‹</button>
+      <div class="fhdr-title"><div class="t">AI 프롬프트 복사</div><div class="s" style="color:var(--accent)">✨ 본인 AI 계정에 붙여넣기</div></div>
+      <span style="width:34px"></span>
+    </div>
+    <div class="scroll">
+      <div style="padding:16px 18px 26px">
+        <div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>이 프롬프트는 <b>이 기기에서만</b> 생성되며 외부로 전송되지 않습니다. 복사해 본인 AI에 붙여넣어 결과를 받으세요. 이름 등 식별정보는 제외됩니다.</span></div>
+        <textarea id="cp-text" class="cp-text" readonly></textarea>
+        <button class="cp-copy" id="cp-copy" onclick="copyPrompt()">📋 프롬프트 복사하기</button>
+        <div class="cp-links-h">복사 + 열기 (버튼 하나로)</div>
+        <div class="cp-links">
+          <button class="cp-link" onclick="openAndCopy('claude')">Claude 복사+열기</button>
+          <button class="cp-link" onclick="openAndCopy('chatgpt')">ChatGPT 복사+열기</button>
+          <button class="cp-link" onclick="openAndCopy('gemini')">Gemini 복사+열기</button>
+          <button class="cp-link" onclick="openAndCopy('perplexity')">Perplexity 복사+열기</button>
+        </div>
+        <p id="cp-open-tip" class="cp-tip" style="margin-top:8px"></p>
+        <div class="cp-tip">💡 버튼을 누르면 프롬프트가 자동 복사되고 AI가 새 탭에서 열립니다. 열린 창에서 <b>Ctrl+V</b>(모바일: 길게 누르기→붙여넣기)하면 됩니다. 검색형 AI(Perplexity·Gemini)는 스포츠 과학 자료를 함께 찾아 더 근거 있는 답을 줍니다.</div>
+        <div id="cp-paste-wrap" hidden style="margin-top:4px">
+          <div class="cp-links-h" style="margin-top:18px">AI에서 받은 결과를 여기에 붙여넣기</div>
+          <textarea id="cp-paste" class="cp-text" placeholder="AI가 생성해 준 루틴 전체를 여기 붙여넣으세요 (Ctrl+V)…" style="height:200px"></textarea>
+          <button class="cp-copy" onclick="pasteResult()">✓ 결과를 앱 카드로 보기</button>
+        </div>
+        <div class="cp-or">또는 가입 없이 바로</div>
+        <button class="cp-lite" onclick="showRuleGuide()">🛡️ 즉시 라이트 가이드 보기 (규칙 기반)</button>
+        <div class="disc-badge" style="margin-top:16px">⚕️ <span>본 도구는 참고용이며 의학적 진단·처방이 아닙니다. 적용 전 스포츠의학 전문의·전문 트레이너의 확인을 권장합니다.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ GENERATING ============ -->
+  <section id="s-gen" class="screen" hidden>
+    <div class="gen">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="gt" id="gen-title">루틴 구성 중</div>
+      <p class="gs" id="gen-sub"></p>
+    </div>
+  </section>
+
+  <!-- ============ RESULT ============ -->
+  <section id="s-result" class="screen" hidden>
+    <div class="fhdr">
+      <button class="iconbtn" onclick="goForm()">‹</button>
+      <div class="fhdr-title"><div class="t" id="res-name">선수 루틴</div><div class="s" id="res-mode-tag"></div></div>
+      <button class="smallbtn" onclick="regenerate()">다시</button>
+    </div>
+    <div class="scroll" id="res-scroll"><!-- 동적 --></div>
+    <div class="disc-full" id="res-disc"></div>
+    <div class="export-row">
+      <button class="expbtn copy" onclick="exportRichCopy()">📋 서식 복사</button>
+      <button class="expbtn print" onclick="exportPrint()">🖨️ PDF 저장</button>
+      <button class="expbtn txt" onclick="exportText()">💾 텍스트</button>
+    </div>
+    <p class="export-note">저장 시 입력하신 신체 정보가 파일에 포함됩니다</p>
+    <p class="export-msg" id="export-msg" hidden></p>
+    <button class="wipebtn" onclick="finishAndWipe()">완료 · 입력 정보 삭제하고 닫기</button>
+  </section>
+
+  <!-- ============ VALIDATION MODAL ============ -->
+  <div id="modal" hidden></div>
+
+</div>
+
+<script>
+"use strict";
+
+/* ===== 보호자 동의 "증거" 로그 (예외적 최소 기록) =====
+   무저장 원칙의 유일한 예외. 동의 시각·문구버전·1회용 토큰만 익명 기록.
+   이름/연락처/IP/기기정보는 절대 포함하지 않음(개인정보 수집 최소화 원칙).
+   CONSENT_LOG_URL이 비어 있으면 로깅 없이 동의만 진행(앱 동작에 영향 없음).
+   사용법: Google Apps Script 웹앱을 배포한 뒤 그 URL을 아래에 붙여넣으세요. */
+const CONSENT_LOG_URL = ''; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+const CONSENT_VERSION = 'parent-v1-2026-07'; // 동의 모달 문구를 바꿀 때마다 버전을 올리세요
+function logConsentEvent(consentType){
+  if(!CONSENT_LOG_URL) return;
+  var token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Math.random().toString(36)+Math.random().toString(36));
+  var payload = JSON.stringify({ consentType:consentType, consentVersion:CONSENT_VERSION, sessionToken:token, clientTime:new Date().toISOString() });
+  try{
+    fetch(CONSENT_LOG_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:payload });
+  }catch(_){ /* 네트워크 실패는 사용자 흐름을 막지 않음 */ }
+}
+
+/* ===== 무저장 메모리 상태 (저장소 미사용) ===== */
+function freshState(){
+  return { phase:'intro', mode:null, strike:0, ack:false, parentConsented:false,
+    form:{}, profile:null, routine:null, fb:null, fbText:'', fbSent:false };
+}
+let STATE = freshState();
+
+const FORM_IDS = ['name','age','sex','sport','position','height','weight','sleep','currentTraining','diet','supplement','injury','weekdayTime','weekendTime','tools','goal'];
+/* 랜덤 샘플 — 버튼 누를 때마다 다른 가상 선수(정상 BMI 범위) 생성 */
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function rnd(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function makeRandomSample(){
+  const NAMES=['민준','서연','지호','하준','도윤','수아','은우','지민','예준','시우','준서','다은','Joshua','Ethan','Mia','Leo'];
+  const SPORTS=['야구','축구','농구','배구','테니스'];
+  const POS={'야구':['투수','포수','유격수','중견수','1루수'],'축구':['윙어','수비수','골키퍼','미드필더','스트라이커'],'농구':['포인트가드','슈팅가드','센터','파워포워드'],'배구':['세터','리베로','아웃사이드 히터'],'테니스':['단식 주전','복식 주전']};
+  const SLEEP=['밤 9시 취침, 아침 7시 기상','밤 10시 취침, 아침 6시 반 기상','밤 11시 취침, 아침 7시 기상','밤 10시 반 취침, 아침 7시 반 기상'];
+  const TRAIN=['주 3회 총 12시간','주 4회(수·목·토·일) 총 16시간','주 5회 총 18시간','주 2회 총 8시간'];
+  const DIET=['하루 3끼, 단것(초콜릿) 선호 / 채소 기피','하루 3끼 골고루, 우유 잘 마심','아침을 자주 거름, 인스턴트 선호','채소·과일 잘 먹고 물 자주 마심','편식 없이 잘 먹음'];
+  const SUPP=['특이사항 없음','종합비타민 섭취 중','오메가3 섭취 중','비타민D 섭취 중','종합비타민·아연 섭취 중','특이사항 없음, 영양제 미복용'];
+  const INJURY=['특이사항 없음','6개월 전 발목 염좌 이력','어깨 회전근 통증 경험','무릎 성장통 관찰','손목 사용 과다 호소','3개월 전 팔꿈치 과사용 주의 진단','허리 뻐근함 호소, 스트레칭 필요'];
+  const TOOLS={'야구':'배트, 테니스공, 튜빙밴드, 전신거울','축구':'축구공, 마커콘, 사다리','농구':'농구공, 점프링, 튜빙밴드','배구':'배구공, 튜빙밴드, 폼롤러','테니스':'라켓, 공, 전신거울'};
+  const GOAL=['회전력·동체시력 향상','민첩성·순발력 강화','코어 안정성 강화','점프력·착지 안정성','지구력·체력 향상','기본기·자세 교정'];
+  const age=rnd(7,15);
+  const sport=pick(SPORTS);
+  const h=Math.round(75+age*6.2+rnd(-6,6));               // 연령 평균 ± 6cm
+  const w=Math.round((15.5+Math.random()*3.5)*Math.pow(h/100,2)); // BMI 15.5~19 → 정상
+  return { name:pick(NAMES), age:String(age), sex:pick(['남','여']), sport, position:pick(POS[sport]),
+    height:String(h), weight:String(w),
+    sleep:pick(SLEEP), currentTraining:pick(TRAIN), diet:pick(DIET), supplement:pick(SUPP), injury:pick(INJURY),
+    weekdayTime:String(rnd(3,6)*5), weekendTime:String(rnd(6,12)*5),
+    tools:TOOLS[sport], goal:pick(GOAL) };
+}
+
+/* ===== 보안: 비식별 마스킹 ===== */
+function maskPII(t){
+  if(!t) return t;
+  return String(t)
+    .replace(/01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/g,'[연락처 비공개]')
+    .replace(/\d{6}[-\s]?[1-4]\d{6}/g,'[주민번호 비공개]')
+    .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g,'[이메일 비공개]')
+    .replace(/0\d{1,2}[-\s.]?\d{3,4}[-\s.]?\d{4}/g,'[연락처 비공개]');
+}
+
+/* ===== 작은 도우미 ===== */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function readForm(){ const f={}; FORM_IDS.forEach(k=>{ const el=$('f-'+k); f[k]=el?el.value.trim():''; }); return f; }
+function setFormDOM(f){ FORM_IDS.forEach(k=>{ const el=$('f-'+k); if(el) el.value=f[k]||''; }); }
+function clearFormDOM(){ FORM_IDS.forEach(k=>{ const el=$('f-'+k); if(el) el.value=''; }); }
+
+/* ===== 화면 전환 ===== */
+function showScreen(phase){
+  STATE.phase=phase;
+  [['intro','s-intro'],['form','s-form'],['prompt','s-prompt'],['generating','s-gen'],['result','s-result']]
+    .forEach(([p,id])=>{ $(id).hidden = (p!==phase); });
+  const sc=document.querySelector('#s-'+(phase==='generating'?'gen':phase)+' .scroll');
+  if(sc) sc.scrollTop=0;
+}
+
+function pickMode(m){
+  STATE.mode=m; STATE.ack=false; STATE.strike=0;
+  $('form-mode-tag').textContent = m==='ai' ? '✨ 본인 AI로 받기 · 프롬프트 복사 (전송 없음)' : '🛡️ 오프라인 규칙 기반 · 전송 없음';
+  $('form-mode-tag').style.color = m==='ai' ? 'var(--accent)' : 'var(--green)';
+  renderAck();
+  $('genbtn').textContent = m==='ai' ? '✨ AI 프롬프트 만들기' : '🛡️ 라이트 루틴 생성하기';
+  showScreen('form');
+}
+function goIntro(){ showScreen('intro'); }
+function goForm(){ showScreen('form'); }
+
+/* ===== 폼 인터랙션 ===== */
+function fillSample(){ setFormDOM(makeRandomSample()); onVitals(); }
+function onVitals(){
+  const h=parseFloat($('f-height').value), w=parseFloat($('f-weight').value);
+  $('f-bmi').textContent = (h>0&&w>0) ? ('BMI '+(w/Math.pow(h/100,2)).toFixed(1)+' · 입력값 기준 자동 계산') : '';
+}
+function toggleAck(){ STATE.ack=!STATE.ack; renderAck(); }
+function renderAck(){
+  const on=STATE.ack;
+  $('ackrow').classList.toggle('on',on);
+  $('ackbox').textContent = on?'✓':'';
+  const btn=$('genbtn');
+  btn.classList.toggle('off',!on);
+  $('genhint').hidden = on;
+  if(on){ btn.textContent = STATE.mode==='ai' ? '✨ AI 프롬프트 만들기' : '🛡️ 라이트 루틴 생성하기'; }
+  else { btn.textContent = '동의 후 생성할 수 있습니다'; }
+}
+
+/* ===== 검증 3단계 ===== */
+function checkBody(age,h,w){
+  const bmi=w/Math.pow(h/100,2);
+  if(age<18){
+    if(bmi<12) return {ok:false,detail:`BMI ${bmi.toFixed(1)} — 동일 연령 하위 1% 미만 (저체중 의심)`};
+    if(bmi>26) return {ok:false,detail:`BMI ${bmi.toFixed(1)} — 동일 연령 상위 1% 초과 (과체중 의심)`};
+    const expH=75+age*6.2;
+    if(Math.abs(h-expH)>32) return {ok:false,detail:`키 ${h}cm — 만 ${age}세 평균(약 ${Math.round(expH)}cm) 대비 극단적 이탈`};
+  } else {
+    if(bmi<13||bmi>40) return {ok:false,detail:`BMI ${bmi.toFixed(1)} — 정상 범위(13~40) 밖`};
+  }
+  return {ok:true};
+}
+function submitForm(){
+  if(!STATE.ack) return;
+  const f=readForm(); STATE.form=f;
+  const age=parseFloat(f.age), h=parseFloat(f.height), w=parseFloat(f.weight);
+  if(!f.age||isNaN(age)||age<5||age>100){
+    return openModal('block',{title:'연령 제한 안내',msg:'본 서비스는 만 5세부터 100세까지만 이용 가능합니다. 나이를 다시 확인해 주세요.'});
+  }
+  if(age<14 && !STATE.parentConsented){
+    return openModal('parent',{title:'보호자 동의 확인',msg:'만 '+Math.floor(age)+'세 미만 아동의 정보입니다. 보호자(부모·법정대리인)가 직접 입력하거나 동의한 경우에만 계속할 수 있습니다. 아동의 개인정보(이름·신체정보 등)는 즉시 삭제되며 외부로 전송되지 않습니다.',detail:'동의 사실 확인을 위해 "동의 시각 + 동의문구 버전 + 1회용 무작위 코드"만 익명 기록됩니다. 이름·연락처·기기정보·IP는 기록되지 않습니다.'});
+  }
+  if(!f.sex){
+    return openModal('block',{title:'성별을 선택해 주세요',msg:'또래 평균 비교와 안전한 루틴 설계를 위해 성별 정보가 필요합니다. 성별을 선택한 뒤 다시 시도해 주세요.'});
+  }
+  if(!h||!w||isNaN(h)||isNaN(w)){
+    return openModal('block',{title:'정보가 부족합니다',msg:'안전한 루틴 설계를 위해 키와 몸무게는 반드시 입력해 주세요.'});
+  }
+  const v=checkBody(age,h,w);
+  if(!v.ok){
+    STATE.strike+=1;
+    if(STATE.strike>=2){
+      return openModal('stop',{title:'전문의 대면 진단을 권고합니다',msg:"현재 입력하신 신체 스펙 조건에서는 일반적인 엘리트 스포츠 훈련 및 보강 루틴을 소화할 경우 관절 및 심혈관계 부상 위험이 극도로 높습니다. AI가 임의의 훈련을 제공하는 것은 무책임하며, 스포츠 의학 전문의나 정형외과 전문의의 대면 진단을 통한 '재활 및 기초 체력 설계'를 우선하시기 바랍니다."});
+    }
+    return openModal('warn',{title:'수치 재확인 요청',msg:'입력된 신체 정보가 해당 연령의 평균 범위를 극단적으로 벗어납니다. 오타가 없는지 수치를 다시 확인해 주십시오.',detail:v.detail});
+  }
+  STATE.strike=0; closeModal();
+  if(STATE.mode==='ai'){ buildAndShowPrompt(); } else { generate(); }
+}
+
+/* ===== 검증 모달 ===== */
+function openModal(kind,err){
+  const ic = kind==='stop'?'🚑':kind==='warn'?'⚠️':kind==='parent'?'👨‍👩‍👦':'ℹ️';
+  const icbg = kind==='stop'?'#fdeaea':kind==='warn'?'#fff4e0':kind==='parent'?'#e7f7ef':'#eaf1fb';
+  let actions='';
+  if(kind==='warn'){
+    actions = '<div class="mrow"><button class="mbtn accent" style="flex:1.4" onclick="closeModal()">수치 재입력</button>'
+      + '<button class="mbtn ghost" style="flex:1" onclick="forceProceed()">그래도 진행</button></div>';
+  } else if(kind==='stop'){
+    actions = '<button class="mbtn dark" style="margin-top:20px" onclick="closeModal()">이해했습니다 · 정보 수정</button>';
+  } else if(kind==='parent'){
+    actions = '<div class="mrow"><button class="mbtn" style="flex:1.5;background:var(--green);color:#fff" onclick="parentConsent()">보호자가 직접 동의합니다</button>'
+      + '<button class="mbtn ghost" style="flex:1" onclick="closeModal()">취소</button></div>';
+  } else {
+    actions = '<button class="mbtn accent" style="margin-top:20px" onclick="closeModal()">확인</button>';
+  }
+  $('modal').innerHTML =
+    '<div class="modal-wrap"><div class="modal">'
+    + '<div class="mic" style="background:'+icbg+'">'+ic+'</div>'
+    + '<div class="mt">'+esc(err.title)+'</div>'
+    + '<p class="mm">'+esc(err.msg)+'</p>'
+    + (err.detail?'<div class="md">📐 '+esc(err.detail)+'</div>':'')
+    + actions + '</div></div>';
+  $('modal').hidden=false;
+}
+function closeModal(){ $('modal').hidden=true; $('modal').innerHTML=''; }
+function forceProceed(){ openModal('stop',{title:'전문의 대면 진단을 권고합니다',msg:"현재 입력하신 신체 스펙 조건에서는 일반적인 엘리트 스포츠 훈련 및 보강 루틴을 소화할 경우 관절 및 심혈관계 부상 위험이 극도로 높습니다. AI가 임의의 훈련을 제공하는 것은 무책임하며, 스포츠 의학 전문의나 정형외과 전문의의 대면 진단을 통한 '재활 및 기초 체력 설계'를 우선하시기 바랍니다."}); }
+function parentConsent(){ STATE.parentConsented=true; logConsentEvent('parent_under14'); closeModal(); submitForm(); }
+
+/* ===== 생성 (규칙 엔진) ===== */
+async function generate(){
+  const f=STATE.form;
+  $('gen-title').textContent = '규칙 엔진이 루틴 구성 중';
+  $('gen-sub').textContent = '기기 안에서 안전 가이드라인에 맞춰\n루틴을 즉시 구성하고 있습니다…';
+  showScreen('generating');
+  await wait(500);
+  const routine = ruleRoutine(f);
+  STATE.routine=routine; STATE.profile={...f};
+  STATE.fb=null; STATE.fbText=''; STATE.fbSent=false;
+  renderResult();
+}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function sampleName(){ return (STATE.form.name||'').trim()||'선수'; }
+
+/* ===== 본인 AI로 받기 — 복사용 마스터 프롬프트 (앱은 외부로 전송하지 않음) ===== */
+function buildAndShowPrompt(){
+  const t=$('cp-text'); if(t) t.value=buildCopyPrompt(STATE.form);
+  const b=$('cp-copy'); if(b){ b.textContent='📋 프롬프트 복사하기'; b.classList.remove('done'); }
+  showScreen('prompt');
+}
+function copyPrompt(){
+  const t=$('cp-text'); if(!t) return;
+  const done=function(){ const b=$('cp-copy'); if(b){ b.textContent='✓ 복사됨 — 본인 AI에 붙여넣으세요'; b.classList.add('done'); } };
+  const fallback=function(){ t.removeAttribute('readonly'); t.select(); try{ document.execCommand('copy'); done(); }catch(_){ } t.setAttribute('readonly','readonly'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t.value).then(done).catch(fallback);
+  } else { fallback(); }
+}
+function showRuleGuide(){ STATE.mode='rule'; generate(); }
+
+/* ===== 본인 AI 복사+열기 (개인정보 외부 전송 없음 — 사용자가 본인 계정으로 직접 전송) ===== */
+function openAndCopy(service){
+  copyPrompt();
+  var urls={claude:'https://claude.ai/new',chatgpt:'https://chatgpt.com/',gemini:'https://gemini.google.com/app',perplexity:'https://www.perplexity.ai/'};
+  if(urls[service]) window.open(urls[service],'_blank','noopener,noreferrer');
+  var w=$('cp-paste-wrap'); if(w) w.hidden=false;
+  var tip=$('cp-open-tip');
+  if(tip) tip.textContent='✓ 복사 완료 — '+({claude:'Claude',chatgpt:'ChatGPT',gemini:'Gemini',perplexity:'Perplexity'}[service]||service)+' 창에서 Ctrl+V(또는 길게 누르기)로 붙여넣으세요.';
+}
+function pasteResult(){
+  var txt=($('cp-paste')||{}).value; if(!txt||!txt.trim()) return;
+  STATE.routine={mode:'ai-paste',text:txt.trim()};
+  renderPasteResult(txt.trim());
+}
+function renderPasteResult(txt){
+  var p=STATE.form||{};
+  $('res-name').textContent=(sampleName()||'선수')+' 루틴 (본인 AI 결과)';
+  $('res-mode-tag').textContent='✨ 본인 AI 계정 생성';
+  $('res-mode-tag').style.color='var(--accent)';
+  var html='<div style="padding:14px 18px 6px">';
+  html+='<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>본인 AI 계정에서 생성된 결과입니다. 이 앱은 해당 결과를 저장하거나 전송하지 않습니다.</span></div>';
+  html+='<div class="block"><div class="bt">📋 AI 생성 루틴</div><p style="white-space:pre-wrap;line-height:1.75;font-size:13px">'+esc(txt)+'</p></div>';
+  html+=dashboardHTML(p);
+  html+='</div>';
+  $('res-scroll').innerHTML=html;
+  $('res-disc').textContent='본 루틴은 사용자가 선택한 외부 AI 서비스에서 생성한 참고용 가이드이며 의학적 진단·처방이 아닙니다. 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
+  showScreen('result');
+}
+
+/* 복사용 프롬프트 — 이름 제외 + 식별정보 마스킹 + 또래 비교 데이터 주입 */
+function buildCopyPrompt(f){
+  const age=parseInt(f.age)||10, sex=f.sex||'남';
+  const h=parseFloat(f.height), w=parseFloat(f.weight);
+  const bmi=(h&&w)?(w/Math.pow(h/100,2)).toFixed(1):null;
+
+  /* 또래 비교 데이터 — BENCH_GROWTH(질병관리청 2017)에서 해당 연령/성별 추출 */
+  let benchBlock='';
+  const bk=Math.max(5,Math.min(18,age));
+  const bd=BENCH_GROWTH[sex]&&BENCH_GROWTH[sex][bk];
+  if(bd&&h&&w){
+    const dH=(h-bd[0]).toFixed(1), dW=(w-bd[1]).toFixed(1), dBmi=bmi?(parseFloat(bmi)-bd[2]).toFixed(1):null;
+    const sigH=Math.abs(dH)>=3?(parseFloat(dH)>0?'▲ 평균보다 큼':'▼ 평균보다 작음'):'≈ 평균 수준';
+    const sigW=Math.abs(dW)>=2?(parseFloat(dW)>0?'▲ 평균보다 높음':'▼ 평균보다 낮음'):'≈ 평균 수준';
+    benchBlock=`
+# 또래 신체 비교 (출처: 질병관리청 2017 소아청소년 성장도표 — 만 ${age}세 ${sex}아 50백분위수)
+| 항목 | 또래 평균(50th %ile) | 이 선수 | 차이 |
+|------|---------------------|---------|------|
+| 키   | ${bd[0]}cm | ${h}cm | ${parseFloat(dH)>=0?'+':''}${dH}cm (${sigH}) |
+| 체중 | ${bd[1]}kg | ${w}kg | ${parseFloat(dW)>=0?'+':''}${dW}kg (${sigW}) |
+| BMI  | ${bd[2]} | ${bmi||'-'} | ${dBmi?(parseFloat(dBmi)>=0?'+':'')+dBmi:'-'} |
+
+→ 종합 분석 첫 단락에 이 수치를 활용해 "또래 대비 체격 포지셔닝"을 부모가 이해하기 쉬운 언어로 설명해 주세요.`;
+  }
+
+  return `# 역할
+당신은 MLB 산하 유소년 아카데미 수석 트레이너이자 소아청소년 스포츠의학 전문의입니다. 아래 선수 데이터를 바탕으로 안전하고 개인화된 '주간 훈련 루틴'을 설계해 주세요.
+
+# 안전 규칙 (반드시 준수)
+- 만 15세 이하는 고중량 웨이트 트레이닝 절대 금지 → 체중 기반 코어·균형·가동성·신경계 발달 위주.
+- 부상 부위가 있으면 해당 부위 재활·보강을 1순위로 배치.
+- 입력된 가용 시간과 보유 장비 범위 안에서만 구성.
+- 통증·이상 증상 시 즉시 중단하라는 주의사항 포함.
+
+# 근거 자료 활용
+국내(질병관리청 소아청소년 성장도표, 국민체력100, 학생건강체력평가 PAPS)와 해외(NSCA 유소년 가이드라인, Driveline Baseball 등) 공신력 있는 자료를 참고해 근거와 출처를 간단히 언급해 주세요. 검색 가능한 AI라면 최신 자료를 반영해 주세요.
+${benchBlock}
+# 선수 데이터
+- 나이/성별/체격: 만 ${f.age||'-'}세, ${f.sex?f.sex+'자':'-'}, 키 ${f.height||'-'}cm, 몸무게 ${f.weight||'-'}kg${bmi?' (BMI '+bmi+')':''}
+- 종목/포지션: ${f.sport||'-'} / ${f.position||'-'}
+- 수면: ${maskPII(f.sleep)||'-'}
+- 현재 팀 훈련: ${maskPII(f.currentTraining)||'-'}
+- 식습관: ${maskPII(f.diet)||'-'}
+- 영양제 섭취: ${maskPII(f.supplement)||'-'}
+- 부상 이력: ${maskPII(f.injury)||'-'}
+- 가용 시간: 평일 ${f.weekdayTime||'20'}분 / 주말 ${f.weekendTime||'40'}분
+- 보유 장비: ${maskPII(f.tools)||'기본'}
+- 목표: ${maskPII(f.goal)||'기량 향상'}
+
+# 출력 형식 (한국어)
+1. 종합 분석 — 체격·또래 비교·강점/보완점을 부모가 이해하기 쉽게 3~4문장.
+2. 평일 루틴 — 단계별 운동명·시간(분)·세트/반복, 시간 합계는 평일 가용시간에 맞춤.
+3. 주말 루틴 — 예열 / 본운동 / 회복으로 나눠 구성, 합계는 주말 가용시간에 맞춤.
+4. 영양 팁 — 1~2문장.
+5. 추천 유튜브 검색어 3~4개 — 영문 키워드.
+6. 마지막에 '의학적 진단·처방이 아니며 적용 전 전문가 확인이 필요하다'는 면책 문구.
+
+선수의 이름 등 개인 식별정보는 포함하지 않았습니다. 안전과 발달 단계를 최우선으로 설계해 주세요.`;
+}
+
+/* ===== 규칙 기반 엔진 (오프라인) — 베타 이식 ===== */
+function ruleRoutine(f){
+  const age=parseInt(f.age,10)||9;
+  const h=parseFloat(f.height), w=parseFloat(f.weight);
+  const bmi=(h&&w)?(w/Math.pow(h/100,2)):null;
+  const wd=Math.max(10,parseInt(f.weekdayTime,10)||20);
+  const we=Math.max(15,parseInt(f.weekendTime,10)||40);
+  const sport=f.sport||'야구';
+  const med=`${f.injury||''} ${f.position||''}`;
+  const diet=f.diet||'', tools=f.tools||'';
+
+  const SPORT={
+    '야구':{mech:{title:'거울 섀도우 피칭 + 티배팅 메커니즘',detail:'밸런스 홀드 3초 × 6회, 하프스윙 15구'},neuro:'넘버 볼·컬러콜 동체시력(근·원거리 초점 전환 2분)',prime:{title:'영점 조준 — 티배팅 목적타 + 튜빙밴드 견갑 예열',detail:'하프스윙 15구, 밴드 15회'},video:{name:'야구 동체시력 훈련',q:'baseball vision training tennis ball numbers youth'}},
+    '축구':{mech:{title:'콘 어질리티 + 인스텝 볼 컨트롤',detail:'5-10-5 셔틀 4회, 볼 터치 2분'},neuro:'신호 반응 컷팅(시그널 컷 10회)',prime:{title:'동적 스트레칭 + 짧은 패스 리듬업',detail:'왕복 2회, 인·아웃 패스 2분'},video:{name:'유소년 풋워크 어질리티',q:'youth soccer agility ladder footwork drills'}},
+    '농구':{mech:{title:'점프 착지 안정화 + 볼 핸들링',detail:'박스 드롭-랜딩 8회, 양손 드리블 2분'},neuro:'주변시야 패스 리액션(시그널 패스 10회)',prime:{title:'동적 스트레칭 + 레이업 리듬업',detail:'왕복 2회, 풋워크 2분'},video:{name:'점프 착지 무릎 보호',q:'youth basketball jump landing mechanics knee safety'}},
+    '배구':{mech:{title:'오버헤드 안정화 + 스파이크 폼',detail:'밴드 외회전 15회, 어프로치 점프 8회'},neuro:'토스 추적 리시브 반응(추적 2분)',prime:{title:'견갑 예열 + 어프로치 리듬업',detail:'밴드 15회, 점프 6회'},video:{name:'배구 어깨 안정화',q:'volleyball shoulder stability band exercises youth'}},
+    '테니스':{mech:{title:'스플릿 스텝 + 그라운드스트로크 폼',detail:'스플릿 스텝 10회, 섀도우 스윙 2분'},neuro:'좌우 반응 풋워크(반응 스텝 10회)',prime:{title:'동적 스트레칭 + 미니 랠리 리듬업',detail:'왕복 2회, 라켓 워밍업 2분'},video:{name:'주니어 테니스 풋워크',q:'junior tennis footwork split step drills'}},
+  };
+  const sp=SPORT[sport]||SPORT['야구'];
+
+  const REHAB={
+    '발목':{title:'발목 안정화 — 알파벳 드로잉 + 한발 균형',detail:'알파벳 각 1회, 한발 서기 30초×2 (재활 1순위)',mob:'발목 모빌리티',video:{name:'발목 안정화 재활',q:'ankle sprain rehab stability exercises youth'}},
+    '어깨':{title:'견갑 안정화 — 밴드 외회전 + 월 슬라이드',detail:'외회전 15회×2, 월 슬라이드 12회 (재활 1순위)',mob:'흉추 회전',video:{name:'어깨 회전근 재활',q:'rotator cuff band external rotation rehab youth'}},
+    '무릎':{title:'무릎 보호 — 박스 드롭 착지 + 글루트 브리지',detail:'드롭 착지 8회, 브리지 12회×2 (재활 1순위)',mob:'고관절 모빌리티',video:{name:'무릎 안정화 착지',q:'knee landing mechanics youth athlete rehab'}},
+    '손목':{title:'손목 강화 — 리스트 컬·익스텐션 + 그립',detail:'각 15회×2, 그립 30초 (재활 1순위)',mob:'전완 스트레칭',video:{name:'손목 강화 재활',q:'wrist strengthening rehab exercises'}},
+    '팔꿈치':{title:'팔꿈치 보호 — 전완 이심성 강화',detail:'리버스 컬 12회×2 (재활 1순위, 과사용 주의)',mob:'전완 스트레칭',video:{name:'팔꿈치 과사용 예방',q:'youth elbow overuse prevention forearm exercises'}},
+    '허리':{title:'허리 안정화 — 데드버그 + 버드독',detail:'각 10회×2, 코어 중립 유지 (재활 1순위)',mob:'고관절·흉추 모빌리티',video:{name:'코어 허리 안정화',q:'dead bug bird dog core stability low back'}},
+  };
+  const injuries=[];
+  if(/발목|아킬레스|ankle/i.test(med)) injuries.push('발목');
+  if(/어깨|회전근|로테이터|shoulder/i.test(med)) injuries.push('어깨');
+  if(/무릎|슬개|knee/i.test(med)) injuries.push('무릎');
+  if(/손목|wrist/i.test(med)) injuries.push('손목');
+  if(/팔꿈치|주관절|elbow/i.test(med)) injuries.push('팔꿈치');
+  if(/허리|요추|back/i.test(med)) injuries.push('허리');
+  const inj0=injuries[0]?REHAB[injuries[0]]:null;
+
+  const hasMirror=/거울|mirror/i.test(tools);
+  const hasBand=/밴드|튜빙|band/i.test(tools);
+
+  const w1=Math.max(5,Math.round(wd*0.3));
+  const w3=Math.max(4,Math.round(wd*0.25));
+  const w2=Math.max(5,wd-w1-w3);
+  const block1 = inj0
+    ? {phase:'웜업·가동성·재활',min:w1,title:`${inj0.title} + 동적 가동성`,detail:`${inj0.detail} → 캣-카우·${inj0.mob} 각 8회`}
+    : {phase:'웜업·가동성',min:w1,title:'캣-카우 + 90-90 고관절 + 동적 가동성',detail:'각 동작 8회 × 2세트'};
+  let mechDetail=sp.mech.detail+' · '+sp.neuro;
+  if(hasMirror) mechDetail+=' · 거울 피드백 활용';
+  const block2={phase:'메커니즘·신경계',min:w2,title:sp.mech.title,detail:mechDetail};
+  const block3={phase:'코어 락온·쿨다운',min:w3,title:'데드버그 + 사이드 플랭크 + 박스 호흡',detail:'데드버그 10회, 플랭크 20초×2, 호흡 1분'};
+
+  const ww1m=Math.max(6,Math.round(we*0.3));
+  const ww2m=Math.max(5,Math.round(we*0.25));
+  const wr1m=Math.max(5,Math.round(we*0.25));
+  const wr2m=Math.max(4,we-ww1m-ww2m-wr1m);
+  let primeDetail=sp.prime.detail; if(hasBand) primeDetail+=' (튜빙밴드 활용)';
+  const weekendWarmup=[
+    {min:ww1m,title:'동적 스트레칭 + 워킹 런지 위드 트위스트',detail:'왕복 2회, 관절 전체 예열'},
+    {min:ww2m,title:sp.prime.title,detail:primeDetail},
+  ];
+  const weekendRecovery=[
+    {min:wr1m,title:'관절낭 이완 — 폼롤러 흉추'+(injuries.includes('발목')?' + 발목 모빌리티':''),detail:'흉추 10롤'+(injuries.includes('발목')?', 발목 서클 각 15회':', 부드럽게 진행')},
+    {min:wr2m,title:'피로물질 제거 체조 + 벽다리 올리기 호흡',detail:'가벼운 조깅 2분, 다리 올리기 3분'},
+  ];
+
+  const bmiTxt=bmi?bmi.toFixed(1):'–';
+  const sexTxt=f.sex?f.sex+'자 ':'';
+  let analysis;
+  if(bmi){
+    const blo=age<18?12:13, bhi=age<18?26:40;   // dashBmi와 동일 임계
+    const bodyClause = bmi<blo ? '같은 나이 또래와 비교하면 마른 편입니다.'
+      : bmi>bhi ? '같은 나이 또래와 비교하면 체중이 있는 편입니다.'
+      : '같은 나이 또래와 비교하면 정상 체격 범위에 있습니다.';
+    analysis = `만 ${age}세 ${sexTxt}${sport} 선수${f.position?`(${f.position})`:''}입니다. 키 ${Math.round(h)}cm·몸무게 ${Math.round(w)}kg로 계산한 체격지수(BMI, 키 대비 체중)는 ${bmiTxt}이며, ${bodyClause} `;
+  } else {
+    analysis = `만 ${age}세 ${sexTxt}${sport} 선수${f.position?`(${f.position})`:''}입니다. `;
+  }
+  analysis += age<=15 ? '성장기 관절·인대 보호를 위해 고중량을 배제하고 체중 기반 코어·가동성·신경계 발달에 집중하도록 구성했습니다. ' : '체중 기반 안정화와 가동성을 중심으로 구성했습니다. ';
+  if(injuries.length) analysis+=`${injuries.join('·')} 부상 이력을 반영해 해당 부위 재활·보강 운동을 평일 1순위로 배치했습니다. `;
+  if(/채소|편식|기피/.test(diet)) analysis+='채소·미세영양소 섭취가 부족할 수 있어 회복을 위한 영양 보완이 필요합니다. ';
+  analysis+=`평일 ${wd}분, 주말 ${we}분의 가용 시간과 보유 장비(${tools||'기본'})에 맞춰 시간을 배분했습니다.`;
+
+  let nutrition='훈련 30분 전 가벼운 탄수화물(바나나·고구마)로 에너지를 채우고, 훈련 중에는 물·전해질을 자주 섭취하세요. 종료 후 30분 내 우유·달걀 등 단백질로 회복을 시작합니다.';
+  if(/채소|편식|기피/.test(diet)) nutrition='채소 기피 경향이 보여 비타민·무기질 보충이 필요합니다. '+nutrition;
+
+  const videos=[];
+  if(inj0) videos.push(inj0.video);
+  videos.push(sp.video);
+  videos.push({name:'전신 가동성 워밍업',q:'youth athlete dynamic mobility warmup routine'});
+  videos.push({name:'코어 안정화 (데드버그·플랭크)',q:'dead bug plank core stability kids exercises'});
+
+  return { analysis, weekday:[block1,block2,block3], weekendWarmup, weekendRecovery, nutrition, videos:videos.slice(0,4) };
+}
+
+/* ===== 또래 비교 대시보드 (Phase 4·5) =====
+   BENCH_GROWTH: 질병관리청 2017 소아청소년 성장도표의 만 5~18세 50백분위(중앙값).
+   값 = [신장cm, 체중kg, BMI] · 성별 분리. 출처: benchmark_growth.json (parse: 성장도표+데이터+테이블.xls) */
+const BENCH_GROWTH = {
+  '남':{5:[109.6,19.0,15.9],6:[115.9,21.3,16.0],7:[122.1,24.2,16.4],8:[127.9,27.5,16.9],9:[133.4,31.3,17.6],10:[138.8,35.5,18.4],11:[144.7,40.2,19.1],12:[151.4,45.4,19.8],13:[158.6,50.9,20.3],14:[165.0,56.0,20.8],15:[169.2,60.1,21.2],16:[171.4,63.1,21.6],17:[172.6,65.0,21.9],18:[173.6,66.7,22.3]},
+  '여':{5:[108.4,18.4,15.7],6:[114.7,20.7,15.8],7:[120.8,23.4,16.1],8:[126.7,26.6,16.6],9:[132.6,30.2,17.2],10:[139.1,34.4,17.8],11:[145.8,39.1,18.5],12:[151.7,43.7,19.1],13:[155.9,47.7,19.7],14:[158.3,50.5,20.3],15:[159.5,52.6,20.8],16:[160.0,53.7,21.0],17:[160.2,54.1,21.1],18:[160.6,54.0,21.0]}
+};
+function dashBar(label, val, avg, unit){
+  var maxv = Math.max(val, avg) || 1;
+  var vp = Math.round(val/maxv*100), ap = Math.round(avg/maxv*100);
+  var diff = val - avg;
+  var dtxt = (diff>=0?'+':'') + (Math.abs(diff)<1 ? diff.toFixed(1) : Math.round(diff)) + unit;
+  var ratio = avg ? val/avg : 1;
+  var vd = ratio>=1.05?'평균 이상' : ratio<=0.95?'평균 미만' : '평균 수준';
+  var vdc = ratio>=1.05?'var(--accent)' : ratio<=0.95?'#d9772e' : 'var(--green)';
+  return '<div class="dbar"><div class="dbar-top"><span class="dbar-lab">'+esc(label)+'</span>'
+    + '<span class="dbar-val">'+esc(val)+unit+' <span style="color:'+vdc+'">('+dtxt+' · '+vd+')</span></span></div>'
+    + '<div class="dbar-track"><div class="dbar-fill player" style="width:'+vp+'%"></div></div>'
+    + '<div class="dbar-track"><div class="dbar-fill avg" style="width:'+ap+'%"></div></div>'
+    + '<div class="dbar-cap">■ 선수 &nbsp; ▫ 또래 평균 '+esc(avg)+unit+'</div></div>';
+}
+function dashBmi(bmi, avgBmi, age){
+  var lo = age<18 ? 12 : 13, hi = age<18 ? 26 : 40;   // checkBody와 동일한 임계
+  var status = bmi<lo ? '저체중 경향' : bmi>hi ? '과체중 경향' : '정상 범위';
+  var c = (status==='정상 범위') ? 'var(--green)' : '#d9772e';
+  return '<div class="dbar"><div class="dbar-top"><span class="dbar-lab">BMI(체격지수)</span>'
+    + '<span class="dbar-val">'+bmi.toFixed(1)+' <span style="color:'+c+'">('+status+')</span></span></div>'
+    + '<div class="dbar-cap">또래 평균 '+avgBmi+' · 일반 정상 약 '+lo+'~'+hi+'</div></div>';
+}
+function dashboardHTML(p){
+  var age=parseInt(p.age,10), h=parseFloat(p.height), w=parseFloat(p.weight);
+  var sex=(p.sex==='여')?'여':'남';                 // 기본 남(미선택 대비)
+  var tbl=BENCH_GROWTH[sex]||{}, b=tbl[age];
+  if(!b || !(h>0) || !(w>0)) return '';   // 비교 데이터(만 5~18세)가 없으면 생략
+  var bmi=w/Math.pow(h/100,2);
+  return '<div class="dash">'
+    + '<div class="dash-h">📊 또래 비교 <span class="dash-sub">(만 '+age+'세 '+sex+'아 평균 · 질병관리청 성장도표)</span></div>'
+    + dashBar('키', Math.round(h), b[0], 'cm')
+    + dashBar('몸무게', Math.round(w), b[1], 'kg')
+    + dashBmi(bmi, b[2], age)
+    + '<div class="dash-note">기준: <b>질병관리청 2017 소아청소년 성장도표</b>의 만 '+age+'세 '+sex+'아 50백분위(중앙값)입니다. 정밀 백분위·평가는 전문가 확인을 권장합니다. 구속·체력 등 운동 능력 비교는 측정치 입력 기능 추가 후 제공됩니다.</div>'
+    + '</div>';
+}
+
+/* ===== 결과 렌더 ===== */
+function stepRow(s,color){
+  return '<div class="step"><div class="min"><div class="n" style="color:'+color+'">'+esc(s.min)+'</div><div class="u">분</div></div>'
+    + '<div class="body">'+(s.phase?'<div class="ph">'+esc(s.phase)+'</div>':'')
+    + '<div class="ti">'+esc(s.title)+'</div><div class="de">'+esc(s.detail)+'</div></div></div>';
+}
+function renderResult(){
+  const r=STATE.routine, p=STATE.profile, isAi=STATE.mode==='ai';
+  const isRuleResult = STATE.mode==='rule' || r._fallback;
+  $('res-name').textContent = ((p.name||'').trim()||'선수') + ' 선수 루틴';
+  $('res-mode-tag').textContent = isAi && !r._fallback ? '✨ AI 정밀 분석' : '🛡️ 규칙 기반 라이트';
+  $('res-mode-tag').style.color = (isAi && !r._fallback) ? 'var(--accent)' : 'var(--green)';
+
+  const videos=(r.videos||[]).map(v=>({name:v.name,url:'https://www.youtube.com/results?search_query='+encodeURIComponent(v.query||v.q||v.name)}));
+  const accent='var(--accent)', green='var(--green)';
+
+  let html='';
+  html += '<div style="padding:18px 18px 24px">';
+  if(r._fallback){
+    var why = (r._fallbackReason === 'no-key')
+      ? 'API 키를 입력하지 않아 <b>규칙 기반으로 생성</b>했습니다. 실제 AI 분석을 원하면 키를 입력해 주세요.'
+      : '외부 AI 연결에 실패해(키 오류·네트워크·사용량 한도 등) <b>규칙 기반으로 안전하게 생성</b>했습니다.';
+    html += '<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">ℹ️ <span>'+why+'</span></div>';
+  }
+  html += '<div class="disc-badge">⚕️ <span><b>AI·자동 생성 루틴은 실수를 할 수 있습니다.</b> 적용 전 스포츠의학 전문의 또는 전문 트레이너에게 우리 아이에게 맞는지 꼭 확인받으세요. 운동 중 통증·이상 시 즉시 중단하세요.</span></div>';
+  html += '<div class="block"><div class="bt">🩺 종합 분석</div><p>'+esc(r.analysis)+'</p></div>';
+  html += dashboardHTML(p);
+
+  html += '<div class="sechead"><span class="bar" style="background:'+accent+'"></span><span class="nm">평일 루틴</span><span class="tm">· 총 '+esc(p.weekdayTime||'-')+'분</span></div>';
+  html += '<div class="steps">'+(r.weekday||[]).map(s=>stepRow(s,accent)).join('')+'</div>';
+
+  html += '<div class="sechead"><span class="bar" style="background:'+green+'"></span><span class="nm">주말 루틴</span><span class="tm">· 총 '+esc(p.weekendTime||'-')+'분</span></div>';
+  html += '<div class="subhead">본 훈련 전 예열</div>';
+  html += '<div class="steps">'+(r.weekendWarmup||[]).map(s=>stepRow(s,green)).join('')+'</div>';
+  html += '<div class="subhead">본 훈련 직후 회복</div>';
+  html += '<div class="steps">'+(r.weekendRecovery||[]).map(s=>stepRow(s,green)).join('')+'</div>';
+
+  html += '<div class="nutri"><div class="nt">🥗 영양 팁</div><p>'+esc(r.nutrition)+'</p></div>';
+
+  html += '<div class="vidhead">🔗 훈련 매뉴얼 영상</div><div class="vids">';
+  html += videos.map(v=>'<a class="vid" href="'+esc(v.url)+'" target="_blank" rel="noopener"><span class="pl">▶</span><span class="vn">'+esc(v.name)+'</span><span class="yt">YouTube ↗</span></a>').join('');
+  html += '</div>';
+
+  html += renderFb();
+  html += '</div>';
+  $('res-scroll').innerHTML=html;
+
+  // 트랙별 면책 치환
+  const who = isRuleResult ? '입력 데이터를 기반으로 자동 생성된' : 'AI가 입력 데이터를 기반으로 생성한';
+  const errword = isRuleResult ? '자동 생성 결과는 부정확할 수 있으므로' : 'AI는 오류가 있을 수 있으므로';
+  $('res-disc').textContent = '본 루틴은 '+who+' 참고용 가이드이며 의학적 진단·처방이 아닙니다. '+errword+', 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
+
+  showScreen('result');
+}
+
+/* ===== 피드백 (메모리에만 — 전송/저장 안 함) ===== */
+function renderFb(){
+  if(STATE.fbSent){
+    return '<div class="fb"><div class="ft">이 루틴, 우리 아이에게 잘 맞나요?</div><div class="fbdone">✓ 소중한 피드백 감사합니다!</div></div>';
+  }
+  const up=STATE.fb==='up', down=STATE.fb==='down';
+  return '<div class="fb"><div class="ft">이 루틴, 우리 아이에게 잘 맞나요?</div>'
+    + '<div class="fs">베타 테스트 피드백입니다. 솔직한 평가가 정확도 개선에 큰 도움이 됩니다.</div>'
+    + '<div class="fbrow"><button class="fbbtn up'+(up?' on':'')+'" onclick="fbPick(\'up\')">👍 적합해요</button>'
+    + '<button class="fbbtn down'+(down?' on':'')+'" onclick="fbPick(\'down\')">👎 아쉬워요</button></div>'
+    + '<textarea class="fbtext" id="fbtext" placeholder="어떤 점이 좋았거나 아쉬웠나요? (선택)" oninput="fbTextInput()">'+esc(STATE.fbText)+'</textarea>'
+    + '<button class="fbsend" onclick="sendFb()">피드백 보내기</button></div>';
+}
+function fbPick(v){ STATE.fb=v; refreshFb(); }
+function fbTextInput(){ const el=$('fbtext'); if(el) STATE.fbText=el.value; }
+function sendFb(){ fbTextInput(); STATE.fbSent=true; refreshFb(); }
+function refreshFb(){
+  const cur=document.querySelector('#res-scroll .fb');
+  if(cur){ const tmp=document.createElement('div'); tmp.innerHTML=renderFb(); cur.replaceWith(tmp.firstChild); }
+}
+function regenerate(){ generate(); }
+
+/* ===== 완료 → 즉시 폐기 ===== */
+function finishAndWipe(){
+  wipe();
+  window.alert('입력하신 정보가 메모리에서 모두 삭제되었습니다.');
+  showScreen('intro');
+}
+function wipe(){
+  STATE=freshState();
+  clearFormDOM();
+  var cp=$('cp-text'); if(cp) cp.value='';   // 복사용 프롬프트도 메모리에서 제거
+  $('f-bmi').textContent='';
+  $('res-scroll').innerHTML=''; $('res-disc').textContent='';
+  closeModal();
+  renderAck();
+}
+window.addEventListener('beforeunload', function(){ STATE=freshState(); });
+
+/* ===== 내보내기 ===== */
+function showExportMsg(msg){
+  var el=$('export-msg'); if(!el) return;
+  el.textContent=msg; el.hidden=false;
+  setTimeout(function(){ if(el) el.hidden=true; }, 3000);
+}
+/* 결과 데이터(STATE.routine/profile)로부터 직접 구조화된 텍스트 생성 — DOM 스크래핑(innerText) 금지.
+   카드 UI는 같은 줄의 시간·아이콘·제목이 별도 div로 나뉘어 있어 innerText로 뽑으면 줄바꿈이 뒤섞임. */
+function dashboardText(p){
+  var age=parseInt(p.age,10), h=parseFloat(p.height), w=parseFloat(p.weight);
+  var sex=(p.sex==='여')?'여':'남';
+  var tbl=BENCH_GROWTH[sex]||{}, b=tbl[age];
+  if(!b || !(h>0) || !(w>0)) return '';
+  var bmi=w/Math.pow(h/100,2);
+  var dH=(h-b[0]).toFixed(1), dW=(w-b[1]).toFixed(1);
+  var lo=age<18?12:13, hi=age<18?26:40;
+  var status=bmi<lo?'저체중 경향':bmi>hi?'과체중 경향':'정상 범위';
+  return '[또래 비교] (만 '+age+'세 '+sex+'아 평균 · 질병관리청 성장도표)\n'
+    + '- 키: '+Math.round(h)+'cm (또래 평균 '+b[0]+'cm, '+(parseFloat(dH)>=0?'+':'')+dH+'cm)\n'
+    + '- 몸무게: '+Math.round(w)+'kg (또래 평균 '+b[1]+'kg, '+(parseFloat(dW)>=0?'+':'')+dW+'kg)\n'
+    + '- BMI: '+bmi.toFixed(1)+' ('+status+', 또래 평균 '+b[2]+')';
+}
+function stepText(idx,s){
+  var phase=s.phase?'['+s.phase+'] ':'';
+  return idx+'. ('+s.min+'분) '+phase+s.title+'\n   '+s.detail;
+}
+function buildExportText(){
+  var r=STATE.routine||{}, p=STATE.profile||STATE.form||{};
+  var name=($('res-name')||{}).textContent||'선수 루틴';
+  var disc=($('res-disc')||{}).textContent||'';
+  var lines=[name,'═'.repeat(30),''];
+  if(r.mode==='ai-paste'){
+    lines.push(r.text||'');
+    var bt0=dashboardText(p); if(bt0){ lines.push(''); lines.push(bt0); }
+  } else {
+    lines.push('[종합 분석]'); lines.push(r.analysis||''); lines.push('');
+    var bt=dashboardText(p); if(bt){ lines.push(bt); lines.push(''); }
+    lines.push('[평일 루틴] 총 '+(p.weekdayTime||'-')+'분');
+    (r.weekday||[]).forEach(function(s,i){ lines.push(stepText(i+1,s)); });
+    lines.push('');
+    lines.push('[주말 루틴] 총 '+(p.weekendTime||'-')+'분');
+    lines.push('· 본 훈련 전 예열');
+    (r.weekendWarmup||[]).forEach(function(s,i){ lines.push(stepText(i+1,s)); });
+    lines.push('· 본 훈련 직후 회복');
+    (r.weekendRecovery||[]).forEach(function(s,i){ lines.push(stepText(i+1,s)); });
+    lines.push('');
+    lines.push('[영양 팁]'); lines.push(r.nutrition||''); lines.push('');
+    lines.push('[추천 훈련 영상]');
+    (r.videos||[]).forEach(function(v){
+      var q=v.query||v.q||v.name;
+      lines.push('- '+v.name+' : https://www.youtube.com/results?search_query='+encodeURIComponent(q));
+    });
+  }
+  lines.push(''); lines.push('─'.repeat(30)); lines.push(disc);
+  return lines.join('\n');
+}
+function exportRichCopy(){
+  var el=$('res-scroll'), disc=($('res-disc')||{}).textContent||'';
+  var html='<div style="font-family:sans-serif;font-size:14px;line-height:1.7">'+el.innerHTML+'<p style="margin-top:12px;font-size:11px;color:#666">'+disc+'</p></div>';
+  var plain=buildExportText();
+  var done=function(){ showExportMsg('📋 복사 완료 — Google Docs·Word에 Ctrl+V'); };
+  if(window.ClipboardItem){
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html':new Blob([html],{type:'text/html'}),
+      'text/plain':new Blob([plain],{type:'text/plain'})
+    })]).then(done).catch(function(){ navigator.clipboard.writeText(plain).then(done); });
+  } else {
+    navigator.clipboard.writeText(plain).then(done).catch(function(){
+      var ta=document.createElement('textarea'); ta.value=plain;
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta); done();
+    });
+  }
+}
+function exportPrint(){
+  showExportMsg('🖨️ 인쇄 창 → "PDF로 저장" 선택');
+  setTimeout(function(){ window.print(); }, 200);
+}
+function exportText(){
+  var sport=STATE.form&&STATE.form.sport?STATE.form.sport:'';
+  var age=STATE.form&&STATE.form.age?STATE.form.age+'세':'';
+  var text=buildExportText();
+  var blob=new Blob(['﻿'+text],{type:'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='APEX_루틴_'+sport+'_'+age+'.txt';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+  showExportMsg('💾 파일 저장 완료');
+}
+
+/* 초기화 */
+showScreen('intro');
+renderAck();
+</script>
+</body>
+</html>
