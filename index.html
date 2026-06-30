@@ -1777,6 +1777,8 @@
     }
     function renderPasteResult(txt) {
       var p = STATE.form || {};
+      /* 피드백 상태 초기화 (새 결과마다 리셋) */
+      STATE.fb = null; STATE.fbText = ''; STATE.fbSent = false;
       $('res-name').textContent = (sampleName() || '선수') + ' 루틴 (본인 AI 결과)';
       $('res-mode-tag').textContent = '✨ 본인 AI 계정 생성';
       $('res-mode-tag').style.color = 'var(--accent)';
@@ -1784,6 +1786,7 @@
       html += '<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>본인 AI 계정에서 생성된 결과입니다. 이 앱은 해당 결과를 저장하거나 전송하지 않습니다.</span></div>';
       html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><div style="line-height:1.75;font-size:13px">' + mdToHtml(txt) + '</div></div>';
       html += dashboardHTML(p);
+      html += renderFb();
       html += '</div>';
       $('res-scroll').innerHTML = html;
       var discText = '본 루틴은 사용자가 선택한 외부 AI 서비스에서 생성한 참고용 가이드이며 의학적 진단·처방이 아닙니다. 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
