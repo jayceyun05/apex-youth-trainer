@@ -1786,6 +1786,16 @@
       html += '<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>본인 AI 계정에서 생성된 결과입니다. 이 앱은 해당 결과를 저장하거나 전송하지 않습니다.</span></div>';
       html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><div style="line-height:1.75;font-size:13px">' + mdToHtml(txt) + '</div></div>';
       html += dashboardHTML(p);
+      
+      /* 영상 링크 렌더링 추가 */
+      var r = ruleRoutine(p);
+      var videos = (r.videos || []).map(function(v) { return { name: v.name, url: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(v.q || v.name) }; });
+      if (videos.length > 0) {
+        html += '<div class="vidhead">🔗 훈련 매뉴얼 영상</div><div class="vids">';
+        html += videos.map(function(v) { return '<a class="vid" href="' + esc(v.url) + '" target="_blank" rel="noopener"><span class="pl">▶</span><span class="vn">' + esc(v.name) + '</span><span class="yt">YouTube ↗</span></a>'; }).join('');
+        html += '</div>';
+      }
+
       html += renderFb();
       html += '</div>';
       $('res-scroll').innerHTML = html;
@@ -1867,21 +1877,21 @@ ${benchBlock}
       const diet = f.diet || '', tools = f.tools || '';
 
       const SPORT = {
-        '야구': { mech: { title: '넘버드 테니스볼 소프트토스 + 티배팅 메커니즘', detail: '밸런스 홀드 3초 × 6회, 하프스윙 15구' }, neuro: '넘버볼 동체시력 드릴(근·원거리 초점 전환 2분)', prime: { title: '영점 조준 — 티배팅 목적타 + 튜빙밴드 견갑 예열', detail: '하프스윙 15구, 밴드 15회' }, video: { name: '야구 넘버볼 타격 동체시력 훈련', q: 'baseball vision training numbered ball hitting drill youth' } },
-        '축구': { mech: { title: '어질리티 래더 풋워크 + 인스텝 볼 컨트롤', detail: '5-10-5 셔틀 4회, 볼 터치 2분' }, neuro: '신호 반응 컷팅(시그널 컷 10회)', prime: { title: '동적 스트레칭 + 짧은 패스 리듬업', detail: '왕복 2회, 인·아웃 패스 2분' }, video: { name: '유소년 축구 어질리티 래더 풋워크 드릴', q: '유소년 축구 어질리티 래더 풋워크 드릴 훈련' } },
-        '농구': { mech: { title: '박스 드롭 랜딩 메커닉스 + 볼 핸들링', detail: '박스 드롭-랜딩 8회, 양손 드리블 2분' }, neuro: '주변시야 패스 리액션(시그널 패스 10회)', prime: { title: '동적 스트레칭 + 레이업 리듬업', detail: '왕복 2회, 풋워크 2분' }, video: { name: '청소년 농구 점프 착지 무릎 ACL 예방 드릴', q: '청소년 농구 점프 착지 무릎 ACL 예방 훈련' } },
-        '배구': { mech: { title: '밴드 외회전 + 어프로치 점프 스파이크 폼', detail: '밴드 외회전 15회, 어프로치 점프 8회' }, neuro: '토스 추적 리시브 반응(추적 2분)', prime: { title: '견갑 예열 + 어프로치 리듬업', detail: '밴드 15회, 점프 6회' }, video: { name: '배구 어깨 밴드 회전근개 안정화 운동', q: '배구 어깨 밴드 회전근개 안정화 운동 유소년' } },
-        '테니스': { mech: { title: '스플릿 스텝 + 그라운드스트로크 풋워크', detail: '스플릿 스텝 10회, 섀도우 스윙 2분' }, neuro: '좌우 반응 풋워크(반응 스텝 10회)', prime: { title: '동적 스트레칭 + 미니 랠리 리듬업', detail: '왕복 2회, 라켓 워밍업 2분' }, video: { name: '주니어 테니스 스플릿 스텝 풋워크 훈련', q: '주니어 테니스 스플릿 스텝 풋워크 훈련 방법' } },
+        '야구': { mech: { title: '넘버드 테니스볼 소프트토스 + 티배팅 메커니즘', detail: '밸런스 홀드 3초 × 6회, 하프스윙 15구' }, neuro: '넘버볼 동체시력 드릴(근·원거리 초점 전환 2분)', prime: { title: '영점 조준 — 티배팅 목적타 + 튜빙밴드 견갑 예열', detail: '하프스윙 15구, 밴드 15회' }, video: { name: '야구 넘버볼 타격 동체시력 훈련', q: '야구 타격 동체시력 훈련 baseball vision training youth' } },
+        '축구': { mech: { title: '어질리티 래더 풋워크 + 인스텝 볼 컨트롤', detail: '5-10-5 셔틀 4회, 볼 터치 2분' }, neuro: '신호 반응 컷팅(시그널 컷 10회)', prime: { title: '동적 스트레칭 + 짧은 패스 리듬업', detail: '왕복 2회, 인·아웃 패스 2분' }, video: { name: '유소년 축구 어질리티 래더 풋워크 드릴', q: '유소년 축구 어질리티 래더 풋워크 youth soccer agility ladder footwork' } },
+        '농구': { mech: { title: '박스 드롭 랜딩 메커닉스 + 볼 핸들링', detail: '박스 드롭-랜딩 8회, 양손 드리블 2분' }, neuro: '주변시야 패스 리액션(시그널 패스 10회)', prime: { title: '동적 스트레칭 + 레이업 리듬업', detail: '왕복 2회, 풋워크 2분' }, video: { name: '청소년 농구 점프 착지 무릎 ACL 예방 드릴', q: '청소년 농구 점프 착지 무릎 보호 youth basketball jump landing ACL prevention' } },
+        '배구': { mech: { title: '밴드 외회전 + 어프로치 점프 스파이크 폼', detail: '밴드 외회전 15회, 어프로치 점프 8회' }, neuro: '토스 추적 리시브 반응(추적 2분)', prime: { title: '견갑 예열 + 어프로치 리듬업', detail: '밴드 15회, 점프 6회' }, video: { name: '배구 어깨 밴드 회전근개 안정화 운동', q: '배구 어깨 밴드 회전근개 유소년 volleyball shoulder band rotator cuff' } },
+        '테니스': { mech: { title: '스플릿 스텝 + 그라운드스트로크 풋워크', detail: '스플릿 스텝 10회, 섀도우 스윙 2분' }, neuro: '좌우 반응 풋워크(반응 스텝 10회)', prime: { title: '동적 스트레칭 + 미니 랠리 리듬업', detail: '왕복 2회, 라켓 워밍업 2분' }, video: { name: '주니어 테니스 스플릿 스텝 풋워크 훈련', q: '주니어 테니스 스플릿 스텝 풋워크 junior tennis split step footwork drills' } },
       };
       const sp = SPORT[sport] || SPORT['야구'];
 
       const REHAB = {
-        '발목': { title: '발목 안정화 — 알파벳 드로잉 + 한발 균형', detail: '알파벳 각 1회, 한발 서기 30초×2 (재활 1순위)', mob: '발목 모빌리티', video: { name: '발목 재활 – 알파벳 드로잉 & 한발 균형 훈련', q: '발목 재활 균형 훈련 청소년 알파벳 드로잉' } },
-        '어깨': { title: '견갑 안정화 — 밴드 외회전 + 월 슬라이드', detail: '외회전 15회×2, 월 슬라이드 12회 (재활 1순위)', mob: '흉추 회전', video: { name: '회전근개 재활 – 밴드 외회전 & 월 슬라이드', q: '회전근개 재활 밴드 외회전 월 슬라이드 어깨' } },
-        '무릎': { title: '무릎 보호 — 박스 드롭 착지 + 글루트 브리지', detail: '드롭 착지 8회, 브리지 12회×2 (재활 1순위)', mob: '고관절 모빌리티', video: { name: '무릎 착지 메커닉스 & 글루트 브리지 – ACL 예방 재활', q: '무릎 착지 메커닉스 글루트 브리지 ACL 재활 청소년' } },
-        '손목': { title: '손목 강화 — 리스트 컬·익스텐션 + 그립', detail: '각 15회×2, 그립 30초 (재활 1순위)', mob: '전완 스트레칭', video: { name: '손목 강화 재활 – 리스트 컬 & 익스텐션', q: '손목 리스트 컬 익스텐션 강화 재활 운동' } },
-        '팔꿈치': { title: '팔꿈치 보호 — 전완 이심성 강화', detail: '리버스 컬 12회×2 (재활 1순위, 과사용 주의)', mob: '전완 스트레칭', video: { name: '팔꿈치 과사용 예방 – 리버스 컬 & 이심성 전완 강화', q: '팔꿈치 과사용 예방 리버스 컬 이심성 전완 강화' } },
-        '허리': { title: '허리 안정화 — 데드버그 + 버드독', detail: '각 10회×2, 코어 중립 유지 (재활 1순위)', mob: '고관절·흉추 모빌리티', video: { name: '데드버그 & 버드독 – 코어 허리 안정화 재활', q: '데드버그 버드독 코어 안정화 허리 재활' } },
+        '발목': { title: '발목 안정화 — 알파벳 드로잉 + 한발 균형', detail: '알파벳 각 1회, 한발 서기 30초×2 (재활 1순위)', mob: '발목 모빌리티', video: { name: '발목 재활 – 알파벳 드로잉 & 한발 균형 훈련', q: '발목 재활 알파벳 드로잉 한발 균형 ankle sprain rehab alphabet tracing single leg balance' } },
+        '어깨': { title: '견갑 안정화 — 밴드 외회전 + 월 슬라이드', detail: '외회전 15회×2, 월 슬라이드 12회 (재활 1순위)', mob: '흉추 회전', video: { name: '회전근개 재활 – 밴드 외회전 & 월 슬라이드', q: '어깨 회전근개 재활 밴드 외회전 월 슬라이드 rotator cuff rehab band external rotation wall slide' } },
+        '무릎': { title: '무릎 보호 — 박스 드롭 착지 + 글루트 브리지', detail: '드롭 착지 8회, 브리지 12회×2 (재활 1순위)', mob: '고관절 모빌리티', video: { name: '무릎 착지 메커닉스 & 글루트 브리지 – ACL 예방 재활', q: '무릎 착지 메커닉스 글루트 브리지 ACL 재활 knee landing mechanics glute bridge rehab' } },
+        '손목': { title: '손목 강화 — 리스트 컬·익스텐션 + 그립', detail: '각 15회×2, 그립 30초 (재활 1순위)', mob: '전완 스트레칭', video: { name: '손목 강화 재활 – 리스트 컬 & 익스텐션', q: '손목 강화 재활 리스트 컬 익스텐션 wrist curl extension strengthening rehab' } },
+        '팔꿈치': { title: '팔꿈치 보호 — 전완 이심성 강화', detail: '리버스 컬 12회×2 (재활 1순위, 과사용 주의)', mob: '전완 스트레칭', video: { name: '팔꿈치 과사용 예방 – 리버스 컬 & 이심성 전완 강화', q: '팔꿈치 과사용 예방 리버스 컬 전완 강화 elbow overuse prevention reverse curl eccentric forearm' } },
+        '허리': { title: '허리 안정화 — 데드버그 + 버드독', detail: '각 10회×2, 코어 중립 유지 (재활 1순위)', mob: '고관절·흉추 모빌리티', video: { name: '데드버그 & 버드독 – 코어 허리 안정화 재활', q: '데드버그 버드독 코어 안정화 허리 재활 dead bug bird dog core stability back' } },
       };
       const injuries = [];
       if (/발목|아킬레스|ankle/i.test(med)) injuries.push('발목');
@@ -1943,8 +1953,8 @@ ${benchBlock}
       const videos = [];
       if (inj0) videos.push(inj0.video);
       videos.push(sp.video);
-      videos.push({ name: '유소년 선수 동적 워밍업 루틴 – 워킹 런지·레그 스윙·인치웜', q: '유소년 선수 동적 워밍업 루틴 워킹 런지 레그 스윙 인치웜' });
-      videos.push({ name: '데드버그 & 버드독 코어 안정화 – 청소년 선수', q: '데드버그 버드독 코어 안정화 청소년 선수 운동' });
+      videos.push({ name: '유소년 선수 동적 워밍업 루틴 – 워킹 런지·레그 스윙·인치웜', q: '유소년 동적 워밍업 워킹 런지 레그 스윙 인치웜 youth dynamic mobility warmup lunge' });
+      videos.push({ name: '데드버그 & 버드독 코어 안정화 – 청소년 선수', q: '데드버그 버드독 코어 운동 청소년 dead bug bird dog core exercises youth' });
 
       return { analysis, weekday: [block1, block2, block3], weekendWarmup, weekendRecovery, nutrition, videos: videos.slice(0, 4) };
     }
