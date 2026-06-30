@@ -1505,7 +1505,7 @@
        이름/연락처/IP/기기정보는 절대 포함하지 않음(개인정보 수집 최소화 원칙).
        CONSENT_LOG_URL이 비어 있으면 로깅 없이 동의만 진행(앱 동작에 영향 없음).
        사용법: Google Apps Script 웹앱을 배포한 뒤 그 URL을 아래에 붙여넣으세요. */
-    const CONSENT_LOG_URL = ''; // 예: 'https://script.google.com/macros/s/AKfycb.../exec'
+    const CONSENT_LOG_URL = 'https://script.google.com/macros/s/AKfycbwOxwDml_tjvEZe9fiXscHKM3LhrW_Hy5XonpQZdyzX4q-OG4Q_4jbuG7uzSisXCA_G/exec';
     const CONSENT_VERSION = 'parent-v1-2026-07'; // 동의 모달 문구를 바꿀 때마다 버전을 올리세요
     function logConsentEvent(consentType) {
       if (!CONSENT_LOG_URL) return;
@@ -1991,7 +1991,11 @@ ${benchBlock}
       showScreen('result');
     }
 
-    /* ===== 피드백 (메모리에만 — 전송/저장 안 함) ===== */
+    /* ===== 피드백 — Google Forms 연동 ===== */
+    const FB_FORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLScaXRMf5RonxCMBsMGjN7tQ2YRXRMoDIjN--Hlq7c6hABoRmw/formResponse';
+    const FB_ENTRY_SPORT  = 'entry.333198545';
+    const FB_ENTRY_RATING = 'entry.1334590574';
+    const FB_ENTRY_TEXT   = 'entry.690514673';
     function renderFb() {
       if (STATE.fbSent) {
         return '<div class="fb"><div class="ft">이 루틴, 우리 아이에게 잘 맞나요?</div><div class="fbdone">✓ 소중한 피드백 감사합니다!</div></div>';
@@ -2006,7 +2010,28 @@ ${benchBlock}
     }
     function fbPick(v) { STATE.fb = v; refreshFb(); }
     function fbTextInput() { const el = $('fbtext'); if (el) STATE.fbText = el.value; }
-    function sendFb() { fbTextInput(); STATE.fbSent = true; refreshFb(); }
+    function sendFb() {
+      fbTextInput();
+      /* Google Forms 제출 — fetch no-cors + form-urlencoded 방식 */
+      try {
+        const sport  = (STATE.profile && STATE.profile.sport) ? STATE.profile.sport
+                     : (STATE.form && STATE.form.sport ? STATE.form.sport : '알수없음');
+        const rating = STATE.fb === 'up' ? '적합해요👍' : STATE.fb === 'down' ? '아쉬워요👎' : '미선택';
+        const text   = STATE.fbText || '';
+        const body = new URLSearchParams();
+        body.append('entry.333198545', sport);
+        body.append('entry.1334590574', rating);
+        body.append('entry.690514673', text);
+        fetch(FB_FORM_ACTION, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body.toString()
+        });
+      } catch (_) { /* 네트워크 실패는 UX를 막지 않음 */ }
+      STATE.fbSent = true;
+      refreshFb();
+    }
     function refreshFb() {
       const cur = document.querySelector('#res-scroll .fb');
       if (cur) { const tmp = document.createElement('div'); tmp.innerHTML = renderFb(); cur.replaceWith(tmp.firstChild); }
