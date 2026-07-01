@@ -2247,7 +2247,11 @@ ${videoPrompt}
         ? kspoGrade1FactHTML(kg, age, sex)
         : kt
           ? (dashKspoBmiBar(bmi, kt.새싹.bmiMax, '새싹') + kspoToddlerFactHTML(kt, age, sex))
-          : '';
+          /* 만 7~10세는 국민체력100 공식 등급 자료 자체가 없는 구간(유아기 4~6세 → 유소년기 11~12세로 건너뜀).
+             표시를 생략하지 않고 이유를 명시 — 무표시가 '삭제된 것'처럼 오인되는 것을 방지 */
+          : '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px;color:var(--mut)">'
+            + 'ℹ️ 만 ' + age + '세는 국민체력100 공식 인증기준 자료가 없는 연령대입니다(유아기 만4~6세 → 유소년기 만11~12세로 구간이 건너뜁니다). 위 또래 비교는 질병관리청 성장도표 기준만 적용됩니다.'
+            + '</div>';
       return '<div class="dash">'
         + '<div class="dash-h">📊 또래 비교 <span class="dash-sub">(만 ' + age + '세 ' + sex + '아 평균 · 질병관리청 성장도표)</span></div>'
         + dashBar('키', Math.round(h), b[0], 'cm')
