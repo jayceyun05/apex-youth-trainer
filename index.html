@@ -1871,6 +1871,22 @@
 종합 분석과 루틴 강도를 설계할 때 이 점을 고려해, 일반 평균(KDCA)뿐 아니라 국민체력100 최상위 등급 대비로도 선수의 발달 단계를 해석해 주세요. (단, 앱은 실제 체력 측정치를 입력받지 않으므로 정확한 수치 비교보다는 "엘리트 선수 기준으로 훈련 강도를 과소 설계하지 않도록" 참고하는 용도로 활용해 주세요.)
 전체 인증기준표: https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo`;
       }
+      const kt = getKspoToddler(age, sex);
+      if (kt) {
+        kspoBlock = `
+# 국민체력100 유아기(만 ${age}세) 체력측정 결과지 참고기준 (출처: nfa.kspo.or.kr — 등급 인증서는 발급되지 않는 참고 자료)
+| 체력 요소 | 열매(상위) | 꽃(중위) | 새싹(하위) |
+|-----------|-----------|---------|-----------|
+| 심폐지구력 | ${kt.열매.end} | ${kt.꽃.end} | ${kt.새싹.end} |
+| 근력       | ${kt.열매.grip} | ${kt.꽃.grip} | ${kt.새싹.grip} |
+| 근지구력   | ${kt.열매.core} | ${kt.꽃.core} | ${kt.새싹.core} |
+| 유연성     | ${kt.열매.flex} | ${kt.꽃.flex} | ${kt.새싹.flex} |
+| 신체조성(BMI) | - | - | ${kt.새싹.bmi} |
+
+→ 이 선수는 '일반 유아'가 아닌 '엘리트 유소년 선수'입니다. 위 표는 등급 인증서가 발급되지 않는 참고용 결과지 기준이므로, 절대적 평가 기준이 아니라 "발달 단계 참고"로만 활용해 주세요.
+앱이 실제로 입력받은 값은 키·체중(BMI)뿐이므로, BMI는 위 '새싹' 단계 신체조성 기준과 직접 비교해 언급하고, 심폐지구력·근력 등 나머지 항목은 수치 비교 없이 "참고 맥락"으로만 다뤄 주세요.
+전체 인증기준표: https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo`;
+      }
 
       /* 앱에서 사용하는 공식 영상 링크 목록 추출 */
       const r = ruleRoutine(f);
@@ -2008,6 +2024,16 @@ ${videoPrompt}
       if (/채소|편식|기피/.test(diet)) analysis += '채소·미세영양소 섭취가 부족할 수 있어 회복을 위한 영양 보완이 필요합니다. ';
       analysis += `평일 ${wd}분, 주말 ${we}분의 가용 시간과 보유 장비(${tools || '기본'})에 맞춰 시간을 배분했습니다.`;
 
+      /* 국민체력100 규칙 — 이 선수는 일반 평균이 아닌 엘리트 유소년 선수 기준으로 재해석되어야 함.
+         (앱은 실제 체력 측정치를 입력받지 않으므로 수치 비교 없이 '참고 문구'만 추가) */
+      const kg100 = getKspoGrade1(age, f.sex);
+      const kt100 = getKspoToddler(age, f.sex);
+      if (kg100) {
+        analysis += ' 이 선수는 일반 아동이 아닌 엘리트 선수이므로, 국민체력100 1등급(상위권) 기준과 비교해도 뒤지지 않는 발달 수준을 목표로 훈련 강도를 과소 설계하지 않았습니다.';
+      } else if (kt100) {
+        analysis += ' 이 선수는 일반 유아가 아닌 엘리트 선수이므로, 국민체력100 유아기 참고기준(등급 인증서 미발급, 결과지 제공용)의 상위 단계를 목표로 발달 단계를 해석했습니다.';
+      }
+
       let nutrition = '훈련 30분 전 가벼운 탄수화물(바나나·고구마)로 에너지를 채우고, 훈련 중에는 물·전해질을 자주 섭취하세요. 종료 후 30분 내 우유·달걀 등 단백질로 회복을 시작합니다.';
       if (/채소|편식|기피/.test(diet)) nutrition = '채소 기피 경향이 보여 비타민·무기질 보충이 필요합니다. ' + nutrition;
 
@@ -2058,6 +2084,54 @@ ${videoPrompt}
       return g || null;
     }
 
+    /* 국민체력100 유아기(만 4~6세) 체력측정 결과지 참고기준 — 등급 인증서는 발급되지 않는 '참고용' 자료.
+       열매(상위) > 꽃(중위) > 새싹(하위) 3단계만 제공됨(씨앗 단계 자료는 미확보).
+       '만 나이' 기준으로 48~59개월=만4세, 60~71개월=만5세, 72~83개월=만6세 구간에 해당하는
+       공식 월령 구간 원자료 2개 행을 범위(~)로 그대로 표기 — 평균으로 임의 보정하지 않음.
+       새싹 단계만 신체조성(BMI) 항목을 포함(민첩성·순발력·협응력 대신 측정) — 앱이 실제 수집하는 키·체중과
+       직접 비교 가능한 유일한 항목. */
+    const KSPO_TODDLER = {
+      '남': {
+        4: {
+          열매: { end: '48~59회', grip: '49.3~52.9%', core: '4~5회', flex: '13cm' },
+          꽃:   { end: '35~44회', grip: '41.4~46.1%', core: '0~1회', flex: '10.5~10.7cm' },
+          새싹: { end: '25~34회', grip: '36.1~40.6%', core: '0회',   flex: '7.8~8.2cm', bmi: '17.5~18.1 미만' },
+        },
+        5: {
+          열매: { end: '63~78회', grip: '53.8~54.1%', core: '9회',   flex: '12~13cm' },
+          꽃:   { end: '48~57회', grip: '47.4~48.8%', core: '5회',   flex: '10~10.1cm' },
+          새싹: { end: '31~38회', grip: '41.3~41.7%', core: '1회',   flex: '7cm', bmi: '18.7~19.2 미만' },
+        },
+        6: {
+          열매: { end: '93회', grip: '56.3%', core: '13회', flex: '12.5cm' },
+          꽃:   { end: '64회', grip: '49.6%', core: '8회', flex: '10.5cm' },
+          새싹: { end: '45회', grip: '43.2%', core: '4회', flex: '8cm', bmi: '19.5 미만' },
+        }
+      },
+      '여': {
+        4: {
+          열매: { end: '49~62회', grip: '44.3~51.1%', core: '2~5회', flex: '14.3cm' },
+          꽃:   { end: '36~50회', grip: '40.3~43.7%', core: '0~1회', flex: '12.5~12.7cm' },
+          새싹: { end: '28~36회', grip: '34.3~37.3%', core: '0회',   flex: '10cm', bmi: '17.5~17.7 미만' },
+        },
+        5: {
+          열매: { end: '67~73회', grip: '48.9~53.7%', core: '8~10회', flex: '14~15cm' },
+          꽃:   { end: '53~55회', grip: '42.8~46.8%', core: '3~6회', flex: '12.2~12.3cm' },
+          새싹: { end: '39~41회', grip: '37.9~39.8%', core: '0~2회', flex: '9.9~10cm', bmi: '18.1 미만' },
+        },
+        6: {
+          열매: { end: '84회', grip: '51.9%', core: '13회', flex: '15cm' },
+          꽃:   { end: '60회', grip: '47.4%', core: '9회', flex: '12.7cm' },
+          새싹: { end: '42회', grip: '41.5%', core: '5회', flex: '10cm', bmi: '18.3 미만' },
+        }
+      }
+    };
+    function getKspoToddler(age, sex) {
+      var s = (sex === '여') ? '여' : '남';
+      var g = KSPO_TODDLER[s] && KSPO_TODDLER[s][age];
+      return g || null;
+    }
+
     function dashBar(label, val, avg, unit) {
       var maxv = Math.max(val, avg) || 1;
       var vp = Math.round(val / maxv * 100), ap = Math.round(avg / maxv * 100);
@@ -2084,12 +2158,26 @@ ${videoPrompt}
       var age = parseInt(p.age, 10), h = parseFloat(p.height), w = parseFloat(p.weight);
       var sex = (p.sex === '여') ? '여' : '남';                 // 기본 남(미선택 대비)
       var tbl = BENCH_GROWTH[sex] || {}, b = tbl[age];
-      if (!b || !(h > 0) || !(w > 0)) return '';   // 비교 데이터(만 5~18세)가 없으면 생략
-      var bmi = w / Math.pow(h / 100, 2);
+      var bmi = (h > 0 && w > 0) ? w / Math.pow(h / 100, 2) : null;
+
+      if (!b || !(h > 0) || !(w > 0)) {
+        /* 만 4세는 질병관리청 성장도표 비교 데이터가 없음 — 국민체력100 유아기 참고기준만이라도 제공 */
+        var ktOnly = getKspoToddler(age, sex);
+        if (!ktOnly || bmi === null) return '';
+        return '<div class="dash">'
+          + '<div class="dash-h">📊 국민체력100 유아기 참고기준 <span class="dash-sub">(만 ' + age + '세 ' + sex + ' · 등급 인증서 미발급)</span></div>'
+          + dashBmi(bmi, '-', age)
+          + '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 신체조성(BMI) 참고기준: <b>새싹 단계 ' + esc(ktOnly.새싹.bmi) + '</b>. 심폐지구력·근력 등은 앱이 측정치를 입력받지 않아 비교를 제공하지 않습니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 참고기준 보기 ↗</a></div>'
+          + '</div>';
+      }
+
       var kg = getKspoGrade1(age, sex);
+      var kt = getKspoToddler(age, sex);
       var kspoNote = kg
         ? '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 이 선수는 일반 아동이 아닌 엘리트 유소년 선수입니다. 위 수치는 "일반 아동 평균"과의 비교이며, 국민체력100 1등급(상위권) 인증기준도 함께 참고하면 더 정확한 발달 평가가 가능합니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 인증기준 보기 ↗</a></div>'
-        : '';
+        : kt
+          ? '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 이 선수는 일반 유아가 아닌 엘리트 선수입니다. BMI는 국민체력100 유아기 참고기준(새싹 단계) <b>' + esc(kt.새싹.bmi) + '</b>과도 비교해 보세요. 등급 인증서는 발급되지 않는 참고용 결과지 기준입니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 참고기준 보기 ↗</a></div>'
+          : '';
       return '<div class="dash">'
         + '<div class="dash-h">📊 또래 비교 <span class="dash-sub">(만 ' + age + '세 ' + sex + '아 평균 · 질병관리청 성장도표)</span></div>'
         + dashBar('키', Math.round(h), b[0], 'cm')
