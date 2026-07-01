@@ -12,7 +12,7 @@
 //    - 코드 변경 후 반드시 [새 버전 배포] 눌러야 반영됨
 // ══════════════════════════════════════════════════════════════
 
-var SPREADSHEET_ID = '1pIyjoneh2V3O6LnPOxsZDGMs2m1un0_fFtgPEcTrSHg';
+var SPREADSHEET_ID = '1Oi7jzgWMOizO1Xla5NhjVLgA24U99fzzPLdIG8TsajA';
 
 var SHEET_CONSENT  = '부모동의기록';       // 앱 → doPost
 var SHEET_FEEDBACK = '설문지 응답 시트1';  // 구글 폼 자동 연결 탭 이름
