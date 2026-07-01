@@ -1562,9 +1562,20 @@
     function logConsentEvent(consentType) {
       if (!CONSENT_LOG_URL) return;
       var token = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Math.random().toString(36) + Math.random().toString(36));
-      var payload = JSON.stringify({ consentType: consentType, consentVersion: CONSENT_VERSION, sessionToken: token, clientTime: new Date().toISOString() });
       try {
-        fetch(CONSENT_LOG_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: payload });
+        /* application/x-www-form-urlencoded — Apps Script e.parameter 호환 (no-cors 안전) */
+        var body = new URLSearchParams({
+          consentType:    consentType,
+          consentVersion: CONSENT_VERSION,
+          sessionToken:   token,
+          clientTime:     new Date().toISOString()
+        });
+        fetch(CONSENT_LOG_URL, {
+          method:  'POST',
+          mode:    'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:    body.toString()
+        });
       } catch (_) { /* 네트워크 실패는 사용자 흐름을 막지 않음 */ }
     }
 
