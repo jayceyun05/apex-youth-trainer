@@ -2201,10 +2201,12 @@ ${videoPrompt}
     }
     /* 국민체력100 1등급 기준 수치 — 앱이 측정치를 입력받지 않으므로 선수와 비교하지 않고, 공식 기준 수치만 사실로 나열 */
     function kspoGrade1FactHTML(kg, age, sex) {
+      var url = 'https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo';
       return '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px">'
         + '<b>국민체력100 만 ' + age + '세 ' + esc(sex) + ' 1등급 기준</b> (출처: 문화체육관광부·국민체력100)'
         + '<div style="margin-top:6px;line-height:1.7">심폐지구력 ' + esc(kg.end) + ' · 근력 ' + esc(kg.grip) + ' · 근지구력 ' + esc(kg.core) + ' · 유연성 ' + esc(kg.flex) + '</div>'
         + '<div style="margin-top:4px;font-size:0.6875rem;color:var(--mut)">※ 앱은 심폐지구력·근력 등의 실측치를 입력받지 않아 선수 본인 수치와의 비교는 제공하지 않습니다. 위는 공식 기준 수치 그 자체입니다.</div>'
+        + '<a href="' + esc(url) + '" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.75rem;font-weight:700;color:var(--navy3);text-decoration:underline">국민체력100 인증기준 원문 보기 ↗</a>'
         + '</div>';
     }
     /* 국민체력100 유아기 3단계(열매·꽃·새싹) 기준 수치 — 사실 나열 */
@@ -2219,6 +2221,7 @@ ${videoPrompt}
         + '<tr><td style="padding:4px 6px;color:var(--mut)">유연성</td><td style="padding:4px 6px;text-align:center">' + esc(kt.열매.flex) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.꽃.flex) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.새싹.flex) + '</td></tr>'
         + '</table>'
         + '<div style="margin-top:6px;font-size:0.6875rem;color:var(--mut)">※ 신체조성(BMI)은 위 BMI 비교 막대에서 선수 실측값과 직접 비교했습니다. 심폐지구력·근력 등은 앱이 측정치를 입력받지 않아 공식 기준 수치만 사실로 표기했습니다.</div>'
+        + '<a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.75rem;font-weight:700;color:var(--navy3);text-decoration:underline">국민체력100 인증기준 원문 보기 ↗</a>'
         + '</div>';
     }
     function dashboardHTML(p) {
