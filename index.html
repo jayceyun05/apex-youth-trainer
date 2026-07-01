@@ -1147,8 +1147,28 @@
       width: 100%;
       border-radius: 26px 26px 32px 32px;
       padding: 26px 24px 24px;
-      animation: fadeUp .3s
+      animation: fadeUp .3s;
+      position: relative
     }
+
+    .modal-x {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: #f0f3f6;
+      color: var(--mut);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-x:hover { background: #e4e9ee; }
 
     .modal .mic {
       width: 54px;
@@ -1726,6 +1746,15 @@
 
     /* ===== 검증 모달 ===== */
     function openModal(kind, err) {
+      if (kind === 'feedback') {
+        $('modal').innerHTML =
+          '<div class="modal-wrap"><div class="modal">'
+          + '<button class="modal-x" onclick="skipFeedbackAndWipe()">✕</button>'
+          + '<div id="fb-modal-body">' + renderFb() + '</div>'
+          + '</div></div>';
+        $('modal').hidden = false;
+        return;
+      }
       const ic = kind === 'stop' ? '🚑' : kind === 'warn' ? '⚠️' : kind === 'parent' ? '👨‍👩‍👦' : 'ℹ️';
       const icbg = kind === 'stop' ? '#fdeaea' : kind === 'warn' ? '#fff4e0' : kind === 'parent' ? '#e7f7ef' : '#eaf1fb';
       let actions = '';
@@ -1820,7 +1849,6 @@
       }
       html += kspoVideoLinkHTML();
 
-      html += renderFb();
       html += '</div>';
       $('res-scroll').innerHTML = html;
       var discText = '본 루틴은 사용자가 선택한 외부 AI 서비스에서 생성한 참고용 가이드이며 의학적 진단·처방이 아닙니다. 실제 훈련에 적용하기 전 반드시 스포츠의학 전문의 또는 전문 트레이너의 확인을 받으시길 권장합니다. 통증·이상 증상이 나타나면 즉시 중단하고 전문가와 상담하세요. 본 가이드 이용에 따른 최종 판단과 책임은 보호자에게 있습니다.';
@@ -2232,7 +2260,6 @@ ${videoPrompt}
       html += '</div>';
       html += kspoVideoLinkHTML();
 
-      html += renderFb();
       html += '</div>';
       $('res-scroll').innerHTML = html;
 
@@ -2442,15 +2469,29 @@ ${videoPrompt}
       } catch (_) { /* 네트워크 실패는 UX를 막지 않음 */ }
       STATE.fbSent = true;
       refreshFb();
+      /* 감사 문구를 잠시 보여준 뒤 자동으로 정보 삭제·종료 진행 */
+      setTimeout(doWipeAndClose, 900);
     }
     function refreshFb() {
-      const cur = document.querySelector('#res-scroll .fb');
-      if (cur) { const tmp = document.createElement('div'); tmp.innerHTML = renderFb(); cur.replaceWith(tmp.firstChild); }
+      const cur = $('fb-modal-body');
+      if (cur) cur.innerHTML = renderFb();
     }
     function regenerate() { generate(); }
 
-    /* ===== 완료 → 즉시 폐기 ===== */
+    /* ===== 완료 버튼 → 피드백 팝업 → 정보 삭제 ===== */
     function finishAndWipe() {
+      /* 결과가 있고 아직 피드백을 보내지 않았다면 팝업으로 먼저 요청, 없으면 곧바로 삭제·종료 */
+      if (STATE.routine && !STATE.fbSent) {
+        openModal('feedback');
+      } else {
+        doWipeAndClose();
+      }
+    }
+    function skipFeedbackAndWipe() {
+      closeModal();
+      doWipeAndClose();
+    }
+    function doWipeAndClose() {
       wipe();
       window.alert('입력하신 정보가 메모리에서 모두 삭제되었습니다.');
       showScreen('intro');
