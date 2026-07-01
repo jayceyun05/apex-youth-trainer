@@ -1895,8 +1895,8 @@
 | 근지구력   | ${kg.core} |
 | 유연성     | ${kg.flex} |
 
-→ 이 선수는 '일반 아동'이 아닌 '엘리트 유소년 선수'입니다. 위 1등급 기준은 일반인 상위권 수준이므로, 엘리트 선수는 이를 상회할 가능성이 높습니다.
-종합 분석과 루틴 강도를 설계할 때 이 점을 고려해, 일반 평균(KDCA)뿐 아니라 국민체력100 최상위 등급 대비로도 선수의 발달 단계를 해석해 주세요. (단, 앱은 실제 체력 측정치를 입력받지 않으므로 정확한 수치 비교보다는 "엘리트 선수 기준으로 훈련 강도를 과소 설계하지 않도록" 참고하는 용도로 활용해 주세요.)
+→ 종합 분석 문단에 위 4개 항목의 공식 수치를 그대로 인용해 객관적 사실로 서술해 주세요. 예: "국민체력100 만 ${age}세 ${sex} 1등급 기준은 심폐지구력 ${kg.end}, 근력 ${kg.grip}, 근지구력 ${kg.core}, 유연성 ${kg.flex}이다."
+단, 앱은 이 선수의 실제 체력 측정치(심폐지구력·근력 등)를 입력받지 않았으므로, "선수가 이를 상회/하회한다"는 임의의 평가나 추측은 하지 마세요. 공식 기준 수치 자체만 사실로 전달하고, 훈련 루틴은 이 엘리트 선수의 나이대 표준을 감안해 설계해 주세요.
 전체 인증기준표: https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo`;
       }
       const kt = getKspoToddler(age, sex);
@@ -1911,8 +1911,8 @@
 | 유연성     | ${kt.열매.flex} | ${kt.꽃.flex} | ${kt.새싹.flex} |
 | 신체조성(BMI) | - | - | ${kt.새싹.bmi} |
 
-→ 이 선수는 '일반 유아'가 아닌 '엘리트 유소년 선수'입니다. 위 표는 등급 인증서가 발급되지 않는 참고용 결과지 기준이므로, 절대적 평가 기준이 아니라 "발달 단계 참고"로만 활용해 주세요.
-앱이 실제로 입력받은 값은 키·체중(BMI)뿐이므로, BMI는 위 '새싹' 단계 신체조성 기준과 직접 비교해 언급하고, 심폐지구력·근력 등 나머지 항목은 수치 비교 없이 "참고 맥락"으로만 다뤄 주세요.
+→ 종합 분석 문단에 이 선수의 실제 BMI ${bmi || '-'}와 국민체력100 '새싹' 단계 신체조성 기준(${kt.새싹.bmi})을 직접 비교해 사실로 서술해 주세요. 예: "이 선수의 BMI는 X로, 국민체력100 새싹 단계 기준(${kt.새싹.bmi})에 해당한다/해당하지 않는다."
+심폐지구력·근력·근지구력·유연성은 앱이 이 선수의 실측치를 입력받지 않았으므로, 선수 본인과 비교하지 말고 위 표의 공식 수치(열매/꽃/새싹) 자체만 객관적 사실로 인용해 주세요. 등급 인증서는 발급되지 않는 결과지 기준임도 함께 명시해 주세요.
 전체 인증기준표: https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo`;
       }
 
@@ -1959,14 +1959,14 @@ ${videoPrompt}
 선수의 이름 등 개인 식별정보는 포함하지 않았습니다. 안전과 발달 단계를 최우선으로 설계해 주세요.`;
     }
 
-    /* 국민체력100 — 체력증진교실 운동처방 동영상 안내 (회원가입 없이 시청 가능) */
+    /* 국민체력100 — 체력증진교실 운동처방 동영상 안내 */
     function kspoVideoLinkHTML() {
       var url = 'https://nfa.kspo.or.kr/classroom/program/selectPrescriptionMovieList.kspo';
       return '<div class="vidhead">🏅 국민체력100 운동처방 동영상</div>'
         + '<div class="vids">'
         + '<a class="vid" href="' + esc(url) + '" target="_blank" rel="noopener">'
         + '<span class="pl">▶</span>'
-        + '<span class="vn">평일·주말 루틴에 맞는 전문 운동처방 영상 더 보기 (국민체력100 · 회원가입 불필요)</span>'
+        + '<span class="vn">평일·주말 루틴에 맞는 전문 운동처방 영상 더 보기 (국민체력100)</span>'
         + '<span class="yt">바로가기 ↗</span></a></div>';
     }
 
@@ -2052,14 +2052,18 @@ ${videoPrompt}
       if (/채소|편식|기피/.test(diet)) analysis += '채소·미세영양소 섭취가 부족할 수 있어 회복을 위한 영양 보완이 필요합니다. ';
       analysis += `평일 ${wd}분, 주말 ${we}분의 가용 시간과 보유 장비(${tools || '기본'})에 맞춰 시간을 배분했습니다.`;
 
-      /* 국민체력100 규칙 — 이 선수는 일반 평균이 아닌 엘리트 유소년 선수 기준으로 재해석되어야 함.
-         (앱은 실제 체력 측정치를 입력받지 않으므로 수치 비교 없이 '참고 문구'만 추가) */
+      /* 국민체력100 규칙 — 공식 기준 수치를 사실로 인용. 앱은 심폐지구력·근력 등 실측치를 입력받지 않으므로
+         선수 본인과의 비교·추측은 하지 않고, BMI만 실측값 대비 사실로 비교함. */
+      const sexLabel100 = (f.sex === '여') ? '여' : '남';
       const kg100 = getKspoGrade1(age, f.sex);
       const kt100 = getKspoToddler(age, f.sex);
       if (kg100) {
-        analysis += ' 이 선수는 일반 아동이 아닌 엘리트 선수이므로, 국민체력100 1등급(상위권) 기준과 비교해도 뒤지지 않는 발달 수준을 목표로 훈련 강도를 과소 설계하지 않았습니다.';
+        analysis += ` 국민체력100 만 ${age}세 ${sexLabel100} 1등급 기준은 심폐지구력 ${kg100.end}, 근력 ${kg100.grip}, 근지구력 ${kg100.core}, 유연성 ${kg100.flex}이다(앱은 이 항목들의 선수 실측치를 입력받지 않아 본인과의 비교는 제공하지 않음).`;
       } else if (kt100) {
-        analysis += ' 이 선수는 일반 유아가 아닌 엘리트 선수이므로, 국민체력100 유아기 참고기준(등급 인증서 미발급, 결과지 제공용)의 상위 단계를 목표로 발달 단계를 해석했습니다.';
+        const bmiFactClause = bmi
+          ? ` 이 선수의 BMI ${bmi.toFixed(1)}은 국민체력100 새싹 단계 신체조성 기준(${kt100.새싹.bmi})` + (bmi < kt100.새싹.bmiMax ? '에 해당한다.' : '을 초과한다.')
+          : '';
+        analysis += ` 국민체력100 만 ${age}세 ${sexLabel100} 유아기 참고기준(등급 인증서 미발급)은 심폐지구력 열매 ${kt100.열매.end}·꽃 ${kt100.꽃.end}·새싹 ${kt100.새싹.end}이다.${bmiFactClause}`;
       }
 
       let nutrition = '훈련 30분 전 가벼운 탄수화물(바나나·고구마)로 에너지를 채우고, 훈련 중에는 물·전해질을 자주 섭취하세요. 종료 후 30분 내 우유·달걀 등 단백질로 회복을 시작합니다.';
@@ -2123,34 +2127,34 @@ ${videoPrompt}
         4: {
           열매: { end: '48~59회', grip: '49.3~52.9%', core: '4~5회', flex: '13cm' },
           꽃:   { end: '35~44회', grip: '41.4~46.1%', core: '0~1회', flex: '10.5~10.7cm' },
-          새싹: { end: '25~34회', grip: '36.1~40.6%', core: '0회',   flex: '7.8~8.2cm', bmi: '17.5~18.1 미만' },
+          새싹: { end: '25~34회', grip: '36.1~40.6%', core: '0회',   flex: '7.8~8.2cm', bmi: '17.5~18.1 미만', bmiMax: 18.1 },
         },
         5: {
           열매: { end: '63~78회', grip: '53.8~54.1%', core: '9회',   flex: '12~13cm' },
           꽃:   { end: '48~57회', grip: '47.4~48.8%', core: '5회',   flex: '10~10.1cm' },
-          새싹: { end: '31~38회', grip: '41.3~41.7%', core: '1회',   flex: '7cm', bmi: '18.7~19.2 미만' },
+          새싹: { end: '31~38회', grip: '41.3~41.7%', core: '1회',   flex: '7cm', bmi: '18.7~19.2 미만', bmiMax: 19.2 },
         },
         6: {
           열매: { end: '93회', grip: '56.3%', core: '13회', flex: '12.5cm' },
           꽃:   { end: '64회', grip: '49.6%', core: '8회', flex: '10.5cm' },
-          새싹: { end: '45회', grip: '43.2%', core: '4회', flex: '8cm', bmi: '19.5 미만' },
+          새싹: { end: '45회', grip: '43.2%', core: '4회', flex: '8cm', bmi: '19.5 미만', bmiMax: 19.5 },
         }
       },
       '여': {
         4: {
           열매: { end: '49~62회', grip: '44.3~51.1%', core: '2~5회', flex: '14.3cm' },
           꽃:   { end: '36~50회', grip: '40.3~43.7%', core: '0~1회', flex: '12.5~12.7cm' },
-          새싹: { end: '28~36회', grip: '34.3~37.3%', core: '0회',   flex: '10cm', bmi: '17.5~17.7 미만' },
+          새싹: { end: '28~36회', grip: '34.3~37.3%', core: '0회',   flex: '10cm', bmi: '17.5~17.7 미만', bmiMax: 17.7 },
         },
         5: {
           열매: { end: '67~73회', grip: '48.9~53.7%', core: '8~10회', flex: '14~15cm' },
           꽃:   { end: '53~55회', grip: '42.8~46.8%', core: '3~6회', flex: '12.2~12.3cm' },
-          새싹: { end: '39~41회', grip: '37.9~39.8%', core: '0~2회', flex: '9.9~10cm', bmi: '18.1 미만' },
+          새싹: { end: '39~41회', grip: '37.9~39.8%', core: '0~2회', flex: '9.9~10cm', bmi: '18.1 미만', bmiMax: 18.1 },
         },
         6: {
           열매: { end: '84회', grip: '51.9%', core: '13회', flex: '15cm' },
           꽃:   { end: '60회', grip: '47.4%', core: '9회', flex: '12.7cm' },
-          새싹: { end: '42회', grip: '41.5%', core: '5회', flex: '10cm', bmi: '18.3 미만' },
+          새싹: { end: '42회', grip: '41.5%', core: '5회', flex: '10cm', bmi: '18.3 미만', bmiMax: 18.3 },
         }
       }
     };
@@ -2182,6 +2186,41 @@ ${videoPrompt}
         + '<span class="dbar-val">' + bmi.toFixed(1) + ' <span style="color:' + c + '">(' + status + ')</span></span></div>'
         + '<div class="dbar-cap">또래 평균 ' + avgBmi + ' · 일반 정상 약 ' + lo + '~' + hi + '</div></div>';
     }
+    /* 국민체력100 실측 비교 막대 — 앱이 실제로 수집하는 BMI만 대상 (허구 수치 생성 금지) */
+    function dashKspoBmiBar(bmi, bmiMax, tierLabel) {
+      var maxv = Math.max(bmi, bmiMax) || 1;
+      var vp = Math.round(bmi / maxv * 100), tp = Math.round(bmiMax / maxv * 100);
+      var within = bmi < bmiMax;
+      var status = within ? '기준 이내' : '기준 초과';
+      var c = within ? 'var(--green)' : '#d9772e';
+      return '<div class="dbar"><div class="dbar-top"><span class="dbar-lab">BMI vs 국민체력100 ' + esc(tierLabel) + ' 기준</span>'
+        + '<span class="dbar-val">' + bmi.toFixed(1) + ' <span style="color:' + c + '">(' + status + ')</span></span></div>'
+        + '<div class="dbar-track"><div class="dbar-fill player" style="width:' + vp + '%"></div></div>'
+        + '<div class="dbar-track"><div class="dbar-fill avg" style="width:' + tp + '%"></div></div>'
+        + '<div class="dbar-cap">■ 선수 &nbsp; ▫ 국민체력100 ' + esc(tierLabel) + ' 기준 ' + bmiMax + ' 미만</div></div>';
+    }
+    /* 국민체력100 1등급 기준 수치 — 앱이 측정치를 입력받지 않으므로 선수와 비교하지 않고, 공식 기준 수치만 사실로 나열 */
+    function kspoGrade1FactHTML(kg, age, sex) {
+      return '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px">'
+        + '<b>국민체력100 만 ' + age + '세 ' + esc(sex) + ' 1등급 기준</b> (출처: 문화체육관광부·국민체력100)'
+        + '<div style="margin-top:6px;line-height:1.7">심폐지구력 ' + esc(kg.end) + ' · 근력 ' + esc(kg.grip) + ' · 근지구력 ' + esc(kg.core) + ' · 유연성 ' + esc(kg.flex) + '</div>'
+        + '<div style="margin-top:4px;font-size:0.6875rem;color:var(--mut)">※ 앱은 심폐지구력·근력 등의 실측치를 입력받지 않아 선수 본인 수치와의 비교는 제공하지 않습니다. 위는 공식 기준 수치 그 자체입니다.</div>'
+        + '</div>';
+    }
+    /* 국민체력100 유아기 3단계(열매·꽃·새싹) 기준 수치 — 사실 나열 */
+    function kspoToddlerFactHTML(kt, age, sex) {
+      return '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px;overflow-x:auto">'
+        + '<b>국민체력100 만 ' + age + '세 ' + esc(sex) + ' 유아기 참고기준</b> (등급 인증서 미발급 · 결과지 제공용)'
+        + '<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.75rem">'
+        + '<tr><th style="text-align:left;padding:4px 6px;border-bottom:1px solid var(--line2)"></th><th style="padding:4px 6px;border-bottom:1px solid var(--line2)">열매</th><th style="padding:4px 6px;border-bottom:1px solid var(--line2)">꽃</th><th style="padding:4px 6px;border-bottom:1px solid var(--line2)">새싹</th></tr>'
+        + '<tr><td style="padding:4px 6px;color:var(--mut)">심폐지구력</td><td style="padding:4px 6px;text-align:center">' + esc(kt.열매.end) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.꽃.end) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.새싹.end) + '</td></tr>'
+        + '<tr><td style="padding:4px 6px;color:var(--mut)">근력</td><td style="padding:4px 6px;text-align:center">' + esc(kt.열매.grip) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.꽃.grip) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.새싹.grip) + '</td></tr>'
+        + '<tr><td style="padding:4px 6px;color:var(--mut)">근지구력</td><td style="padding:4px 6px;text-align:center">' + esc(kt.열매.core) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.꽃.core) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.새싹.core) + '</td></tr>'
+        + '<tr><td style="padding:4px 6px;color:var(--mut)">유연성</td><td style="padding:4px 6px;text-align:center">' + esc(kt.열매.flex) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.꽃.flex) + '</td><td style="padding:4px 6px;text-align:center">' + esc(kt.새싹.flex) + '</td></tr>'
+        + '</table>'
+        + '<div style="margin-top:6px;font-size:0.6875rem;color:var(--mut)">※ 신체조성(BMI)은 위 BMI 비교 막대에서 선수 실측값과 직접 비교했습니다. 심폐지구력·근력 등은 앱이 측정치를 입력받지 않아 공식 기준 수치만 사실로 표기했습니다.</div>'
+        + '</div>';
+    }
     function dashboardHTML(p) {
       var age = parseInt(p.age, 10), h = parseFloat(p.height), w = parseFloat(p.weight);
       var sex = (p.sex === '여') ? '여' : '남';                 // 기본 남(미선택 대비)
@@ -2194,25 +2233,25 @@ ${videoPrompt}
         if (!ktOnly || bmi === null) return '';
         return '<div class="dash">'
           + '<div class="dash-h">📊 국민체력100 유아기 참고기준 <span class="dash-sub">(만 ' + age + '세 ' + sex + ' · 등급 인증서 미발급)</span></div>'
-          + dashBmi(bmi, '-', age)
-          + '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 신체조성(BMI) 참고기준: <b>새싹 단계 ' + esc(ktOnly.새싹.bmi) + '</b>. 심폐지구력·근력 등은 앱이 측정치를 입력받지 않아 비교를 제공하지 않습니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 참고기준 보기 ↗</a></div>'
+          + dashKspoBmiBar(bmi, ktOnly.새싹.bmiMax, '새싹')
+          + kspoToddlerFactHTML(ktOnly, age, sex)
           + '</div>';
       }
 
       var kg = getKspoGrade1(age, sex);
       var kt = getKspoToddler(age, sex);
-      var kspoNote = kg
-        ? '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 이 선수는 일반 아동이 아닌 엘리트 유소년 선수입니다. 위 수치는 "일반 아동 평균"과의 비교이며, 국민체력100 1등급(상위권) 인증기준도 함께 참고하면 더 정확한 발달 평가가 가능합니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 인증기준 보기 ↗</a></div>'
+      var kspoBlock2 = kg
+        ? kspoGrade1FactHTML(kg, age, sex)
         : kt
-          ? '<div class="dash-note">⭐ <b>엘리트 선수 참고</b> — 이 선수는 일반 유아가 아닌 엘리트 선수입니다. BMI는 국민체력100 유아기 참고기준(새싹 단계) <b>' + esc(kt.새싹.bmi) + '</b>과도 비교해 보세요. 등급 인증서는 발급되지 않는 참고용 결과지 기준입니다. <a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener">국민체력100 참고기준 보기 ↗</a></div>'
+          ? (dashKspoBmiBar(bmi, kt.새싹.bmiMax, '새싹') + kspoToddlerFactHTML(kt, age, sex))
           : '';
       return '<div class="dash">'
         + '<div class="dash-h">📊 또래 비교 <span class="dash-sub">(만 ' + age + '세 ' + sex + '아 평균 · 질병관리청 성장도표)</span></div>'
         + dashBar('키', Math.round(h), b[0], 'cm')
         + dashBar('몸무게', Math.round(w), b[1], 'kg')
         + dashBmi(bmi, b[2], age)
-        + '<div class="dash-note">기준: <b>질병관리청 2017 소아청소년 성장도표</b>의 만 ' + age + '세 ' + sex + '아 50백분위(중앙값)입니다. 정밀 백분위·평가는 전문가 확인을 권장합니다. 구속·체력 등 운동 능력 비교는 측정치 입력 기능 추가 후 제공됩니다.</div>'
-        + kspoNote
+        + '<div class="dash-note">기준: <b>질병관리청 2017 소아청소년 성장도표</b>의 만 ' + age + '세 ' + sex + '아 50백분위(중앙값)입니다. 정밀 백분위·평가는 전문가 확인을 권장합니다.</div>'
+        + kspoBlock2
         + '</div>';
     }
 
