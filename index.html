@@ -1915,6 +1915,18 @@
 심폐지구력·근력·근지구력·유연성은 앱이 이 선수의 실측치를 입력받지 않았으므로, 선수 본인과 비교하지 말고 위 표의 공식 수치(열매/꽃/새싹) 자체만 객관적 사실로 인용해 주세요. 등급 인증서는 발급되지 않는 결과지 기준임도 함께 명시해 주세요.
 전체 인증기준표: https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo`;
       }
+      const pp = getPaps10(age, sex);
+      if (pp) {
+        kspoBlock = `
+# 만 10세(초등학교 4학년) 신체능력검사 1등급(아주높음) 기준 (출처: 학교보건법 시행규칙 [별표4], 법제처 law.go.kr)
+국민체력100은 만 11세부터 자료가 있어, 만 10세는 국가 법정 기준인 학교보건법 신체능력검사 기준표를 대신 사용합니다.
+- ${pp.shuttle}
+- ${pp.grip}
+- ${pp.dash50}
+- ${pp.jump}
+
+→ 종합 분석 문단에 위 4개 항목의 공식 수치를 그대로 인용해 객관적 사실로 서술해 주세요. 앱은 이 선수의 실측치를 입력받지 않았으므로 선수 본인과의 비교·추측은 하지 말고, 공식 기준 수치 자체만 사실로 전달해 주세요.`;
+      }
 
       /* 앱에서 사용하는 공식 영상 링크 목록 추출 */
       const r = ruleRoutine(f);
@@ -2057,6 +2069,7 @@ ${videoPrompt}
       const sexLabel100 = (f.sex === '여') ? '여' : '남';
       const kg100 = getKspoGrade1(age, f.sex);
       const kt100 = getKspoToddler(age, f.sex);
+      const pp100 = getPaps10(age, f.sex);
       if (kg100) {
         analysis += ` 국민체력100 만 ${age}세 ${sexLabel100} 1등급 기준은 심폐지구력 ${kg100.end}, 근력 ${kg100.grip}, 근지구력 ${kg100.core}, 유연성 ${kg100.flex}이다(앱은 이 항목들의 선수 실측치를 입력받지 않아 본인과의 비교는 제공하지 않음).`;
       } else if (kt100) {
@@ -2064,6 +2077,8 @@ ${videoPrompt}
           ? ` 이 선수의 BMI ${bmi.toFixed(1)}은 국민체력100 새싹 단계 신체조성 기준(${kt100.새싹.bmi})` + (bmi < kt100.새싹.bmiMax ? '에 해당한다.' : '을 초과한다.')
           : '';
         analysis += ` 국민체력100 만 ${age}세 ${sexLabel100} 유아기 참고기준(등급 인증서 미발급)은 심폐지구력 열매 ${kt100.열매.end}·꽃 ${kt100.꽃.end}·새싹 ${kt100.새싹.end}이다.${bmiFactClause}`;
+      } else if (pp100) {
+        analysis += ` 국민체력100은 만 11세부터 자료가 있어, 만 10세는 학교보건법 신체능력검사 기준표(법제처)를 대신 사용했습니다. 만 10세 ${sexLabel100} 1등급(아주높음) 기준은 ${pp100.shuttle}, ${pp100.grip}, ${pp100.dash50}, ${pp100.jump}이다(앱은 이 항목들의 선수 실측치를 입력받지 않아 본인과의 비교는 제공하지 않음).`;
       }
 
       let nutrition = '훈련 30분 전 가벼운 탄수화물(바나나·고구마)로 에너지를 채우고, 훈련 중에는 물·전해질을 자주 섭취하세요. 종료 후 30분 내 우유·달걀 등 단백질로 회복을 시작합니다.';
@@ -2164,6 +2179,20 @@ ${videoPrompt}
       return g || null;
     }
 
+    /* 만 10세(초4) — 국민체력100·PAPS 모두 자료가 없는 만 7~9세와 달리,
+       법제처 학교보건법 시행규칙 [별표4] 신체능력검사(필수평가) 기준표(law.go.kr, 2014.3.3 개정)에
+       초등학교 4학년(만 10세) 항목이 실제로 존재함 — 1등급(아주높음) 구간 값.
+       ※ 표의 앉아윗몸앞으로굽히기(유연성) 항목은 남녀 표 구성이 비대칭적이라 오독 위험이 있어 제외.
+       확실하게 확인된 4개 항목(왕복오래달리기·악력·50m달리기·제자리멀리뛰기)만 반영. */
+    const KSPO_PAPS10 = {
+      '남': { shuttle: '15m 왕복오래달리기 96~103회', grip: '악력 31.0~36.0kg', dash50: '50m달리기 8.70~8.80초', jump: '제자리멀리뛰기 170.1~179.4cm' },
+      '여': { shuttle: '15m 왕복오래달리기 77~100회', grip: '악력 29.0~33.6kg', dash50: '50m달리기 9.30~9.40초', jump: '제자리멀리뛰기 161.1~165.5cm' }
+    };
+    function getPaps10(age, sex) {
+      if (age !== 10) return null;
+      return KSPO_PAPS10[(sex === '여') ? '여' : '남'];
+    }
+
     function dashBar(label, val, avg, unit) {
       var maxv = Math.max(val, avg) || 1;
       var vp = Math.round(val / maxv * 100), ap = Math.round(avg / maxv * 100);
@@ -2224,6 +2253,14 @@ ${videoPrompt}
         + '<a href="https://nfa.kspo.or.kr/reserve/0/selectMeasureGradeItemListByAgeSe.kspo" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:0.75rem;font-weight:700;color:var(--navy3);text-decoration:underline">국민체력100 인증기준 원문 보기 ↗</a>'
         + '</div>';
     }
+    /* 만 10세(초4) — 학교보건법 시행규칙 별표4(법제처) 1등급 기준 사실 나열 */
+    function paps10FactHTML(pp, sex) {
+      return '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px">'
+        + '<b>만 10세 ' + esc(sex) + ' 학생 신체능력검사 1등급(아주높음) 기준</b> (출처: 학교보건법 시행규칙 [별표4], 법제처)'
+        + '<div style="margin-top:6px;line-height:1.7">' + esc(pp.shuttle) + ' · ' + esc(pp.grip) + ' · ' + esc(pp.dash50) + ' · ' + esc(pp.jump) + '</div>'
+        + '<div style="margin-top:4px;font-size:0.6875rem;color:var(--mut)">※ 국민체력100은 만 11세부터 자료가 있어, 만 10세(초등학교 4학년)는 별도 국가 법정 기준인 학교보건법 신체능력검사 기준표를 대신 사용했습니다. 앱은 실측치를 입력받지 않아 선수 본인과의 비교는 제공하지 않습니다.</div>'
+        + '</div>';
+    }
     function dashboardHTML(p) {
       var age = parseInt(p.age, 10), h = parseFloat(p.height), w = parseFloat(p.weight);
       var sex = (p.sex === '여') ? '여' : '남';                 // 기본 남(미선택 대비)
@@ -2243,15 +2280,18 @@ ${videoPrompt}
 
       var kg = getKspoGrade1(age, sex);
       var kt = getKspoToddler(age, sex);
+      var pp = getPaps10(age, sex);
       var kspoBlock2 = kg
         ? kspoGrade1FactHTML(kg, age, sex)
         : kt
           ? (dashKspoBmiBar(bmi, kt.새싹.bmiMax, '새싹') + kspoToddlerFactHTML(kt, age, sex))
-          /* 만 7~10세는 국민체력100 공식 등급 자료 자체가 없는 구간(유아기 4~6세 → 유소년기 11~12세로 건너뜀).
-             표시를 생략하지 않고 이유를 명시 — 무표시가 '삭제된 것'처럼 오인되는 것을 방지 */
-          : '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px;color:var(--mut)">'
-            + 'ℹ️ 만 ' + age + '세는 국민체력100 공식 인증기준 자료가 없는 연령대입니다(유아기 만4~6세 → 유소년기 만11~12세로 구간이 건너뜁니다). 위 또래 비교는 질병관리청 성장도표 기준만 적용됩니다.'
-            + '</div>';
+          : pp
+            ? paps10FactHTML(pp, sex)
+            /* 만 7~9세는 국민체력100·학교보건법 신체능력검사 모두 공식 자료가 없는 구간
+               (유아기 4~6세 → 초4인 10세부터 국가 법정 자료 시작). 표시를 생략하지 않고 이유를 명시 */
+            : '<div class="dash-note" style="background:#f5f8fb;border-radius:12px;padding:11px 13px;margin-top:10px;color:var(--mut)">'
+              + 'ℹ️ 만 ' + age + '세는 국민체력100·학교보건법 신체능력검사 모두 공식 기준 자료가 없는 연령대입니다(유아기 만4~6세 → 만10세부터 자료 시작). 위 또래 비교는 질병관리청 성장도표 기준만 적용됩니다.'
+              + '</div>';
       return '<div class="dash">'
         + '<div class="dash-h">📊 또래 비교 <span class="dash-sub">(만 ' + age + '세 ' + sex + '아 평균 · 질병관리청 성장도표)</span></div>'
         + dashBar('키', Math.round(h), b[0], 'cm')
