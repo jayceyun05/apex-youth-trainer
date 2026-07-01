@@ -2104,18 +2104,23 @@ ${videoPrompt}
       };
     }
     /* 마크다운 → HTML 미니 파서 (AI 붙여넣기 결과용) */
-    /* AI 붙여넣기 결과에서 영상 섹션·면책 섹션·질문 블록 제거 */
+    /* AI 붙여넣기 결과에서 영상 섹션·면책 섹션·질문·각주 제거 */
     function stripAIOutput(txt) {
       if (!txt) return '';
       var lines = txt.split(/\r?\n/);
-      var result = [], skip = false;
+      var result = [];
       for (var i = 0; i < lines.length; i++) {
         var l = lines[i], t = l.trim();
-        // Q1./Q2. 등 추가 질문 줄 건너뜀
+        // Q1./Q2. 추가 질문 줄 건너뜀
         if (/^Q\d+[\.\)]/.test(t)) continue;
-        // 영상 섹션 또는 면책 섹션 헤딩 만나면 이후 생략
-        if (/훈련\s*매뉴얼\s*영상/.test(t) || /^#{1,4}\s*(면책|disclaimer)/i.test(t)) break;
-        if (!skip) result.push(l);
+        // [n]: url 각주 정의 줄 건너뜀
+        if (/^\[\d+\]:\s*https?:\/\//.test(t)) continue;
+        // 훈련 매뉴얼 영상 섹션 → 이후 전부 생략
+        if (/훈련\s*매뉴얼\s*영상/.test(t)) break;
+        // 면책 섹션 — 헤딩(# 면책) 또는 번호형(5. 면책 / 6. 면책) 모두 처리
+        if (/^#{1,4}\s*(면책|disclaimer)/i.test(t)) break;
+        if (/^[456]\.\s*(면책|disclaimer)/i.test(t)) break;
+        result.push(l);
       }
       while (result.length && !result[result.length - 1].trim()) result.pop();
       return result.join('\n');
@@ -2123,10 +2128,63 @@ ${videoPrompt}
 
     function mdToHtml(md) {
       if (!md) return '';
-      var lines = md.split(/\r?\n/);
-      var out = [], inList = false;
+
+      /* ── 전처리: ChatGPT가 테이블 행 사이에 삽입하는 빈 줄 제거 ── */
+      var rawLines = md.split(/\r?\n/), lines = [];
+      for (var pi = 0; pi < rawLines.length; pi++) {
+        if (!rawLines[pi].trim()) {
+          var prevPipe = lines.length > 0 && /^\|/.test(lines[lines.length - 1].trim());
+          var ni = pi + 1;
+          while (ni < rawLines.length && !rawLines[ni].trim()) ni++;
+          var nextPipe = ni < rawLines.length && /^\|/.test(rawLines[ni].trim());
+          if (prevPipe && nextPipe) { pi = ni - 1; continue; } // 테이블 내부 빈 줄 스킵
+        }
+        lines.push(rawLines[pi]);
+      }
+
+      var out = [], inList = false, tableRows = [];
+
+      function isPipeRow(t) { return /^\|.+\|$/.test(t); }
+      function isSepRow(t)  { return /^\|([\s\-:|]+\|)+$/.test(t); }
+
+      function flushTable() {
+        if (!tableRows.length) return;
+        var html = '<div style="overflow-x:auto;margin:10px 0">'
+          + '<table style="width:100%;border-collapse:collapse;font-size:12px;line-height:1.5">';
+        tableRows.forEach(function(row, idx) {
+          var cells = row.trim().slice(1, -1).split('|');
+          var isHead = (idx === 0);
+          html += '<tr>';
+          cells.forEach(function(c) {
+            if (isHead) {
+              html += '<th style="border:1px solid #d1d9e0;padding:5px 8px;background:#eef2f7;'
+                + 'font-weight:700;font-size:11.5px;white-space:nowrap">'
+                + inlineFormat(c.trim()) + '</th>';
+            } else {
+              var bg = idx % 2 === 0 ? '#fff' : '#f8fafc';
+              html += '<td style="border:1px solid #e4eaf0;padding:4px 8px;background:' + bg + ';font-size:12px">'
+                + inlineFormat(c.trim()) + '</td>';
+            }
+          });
+          html += '</tr>';
+        });
+        html += '</table></div>';
+        out.push(html);
+        tableRows = [];
+      }
+
       for (var i = 0; i < lines.length; i++) {
-        var l = lines[i];
+        var l = lines[i], t = l.trim();
+
+        /* 테이블 행 */
+        if (isPipeRow(t) || isSepRow(t)) {
+          if (inList) { out.push('</ul>'); inList = false; }
+          if (!isSepRow(t)) tableRows.push(l); // 구분선 행은 건너뜀
+          continue;
+        }
+        /* 테이블 종료 — 비파이프 줄을 만나면 flush */
+        if (tableRows.length) flushTable();
+
         /* 헤딩 */
         var hm = l.match(/^(#{1,4})\s+(.+)$/);
         if (hm) {
@@ -2135,11 +2193,12 @@ ${videoPrompt}
           var sz = lv === 1 ? '16px' : lv === 2 ? '14.5px' : lv === 3 ? '13.5px' : '12.5px';
           var fw = lv <= 2 ? '800' : '700';
           var mt = lv <= 2 ? '18px' : '10px';
-          out.push('<div style="font-size:' + sz + ';font-weight:' + fw + ';color:var(--navy);margin:' + mt + ' 0 4px">' + inlineFormat(hm[2]) + '</div>');
+          out.push('<div style="font-size:' + sz + ';font-weight:' + fw + ';color:var(--navy);margin:' + mt + ' 0 4px">'
+            + inlineFormat(hm[2]) + '</div>');
           continue;
         }
         /* 수평선 */
-        if (/^---+$/.test(l.trim())) {
+        if (/^---+$/.test(t)) {
           if (inList) { out.push('</ul>'); inList = false; }
           out.push('<hr style="border:none;border-top:1px solid var(--line);margin:10px 0">');
           continue;
@@ -2153,18 +2212,25 @@ ${videoPrompt}
         }
         if (inList) { out.push('</ul>'); inList = false; }
         /* 빈 줄 */
-        if (!l.trim()) { out.push('<div style="height:6px"></div>'); continue; }
+        if (!t) { out.push('<div style="height:6px"></div>'); continue; }
         /* 일반 문단 */
         out.push('<p style="font-size:13px;line-height:1.7;margin:2px 0">' + inlineFormat(l) + '</p>');
       }
+
+      if (tableRows.length) flushTable();
       if (inList) out.push('</ul>');
       return out.join('');
     }
     function inlineFormat(s) {
+      // esc()는 & < > " 만 이스케이프 — [ ] ( ) 는 그대로 유지되어 링크 패턴 적용 가능
       return esc(s)
         .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/`(.+?)`/g, '<code style="background:#f0f4f8;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>');
+        .replace(/`(.+?)`/g, '<code style="background:#f0f4f8;padding:1px 4px;border-radius:3px;font-size:12px">$1</code>')
+        // [text](url) → 클릭 가능한 링크
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--navy3);text-decoration:underline">$1 ↗</a>')
+        // [text][ref] → 텍스트만 (각주 참조 표기 제거)
+        .replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1');
     }
     function toggleDisc() { /* 호환성 유지 — 사용 안 함 */ }
 
