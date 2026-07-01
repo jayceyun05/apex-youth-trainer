@@ -1784,7 +1784,7 @@
       $('res-mode-tag').style.color = 'var(--accent)';
       var html = '<div style="padding:14px 18px 6px">';
       html += '<div class="disc-badge" style="background:#eef2f7;border-color:#d6dee7;color:#54657a">🔒 <span>본인 AI 계정에서 생성된 결과입니다. 이 앱은 해당 결과를 저장하거나 전송하지 않습니다.</span></div>';
-      html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><div style="line-height:1.75;font-size:13px">' + mdToHtml(txt) + '</div></div>';
+      html += '<div class="block"><div class="bt">📋 AI 생성 루틴</div><div style="line-height:1.75;font-size:13px">' + mdToHtml(stripAIOutput(txt)) + '</div></div>';
       html += dashboardHTML(p);
       
       /* 영상 링크 렌더링 추가 */
@@ -1867,9 +1867,9 @@ ${videoPrompt}
 2. 평일 루틴 — 단계별 운동명·시간(분)·세트/반복, 시간 합계는 평일 가용시간에 맞춤.
 3. 주말 루틴 — 예열 / 본운동 / 회복으로 나눠 구성, 합계는 주말 가용시간에 맞춤.
 4. 영양 팁 — 1~2문장.
-5. 훈련 매뉴얼 영상 — 제가 제공한 '# 훈련 매뉴얼 영상'의 제목과 링크를 글자 하나 틀리지 않고 그대로 출력하세요. 임의로 영문 검색어를 생성하지 마세요.
-6. 마지막에 '의학적 진단·처방이 아니며 적용 전 전문가 확인이 필요하다'는 면책 문구.
+5. 마지막에 '의학적 진단·처방이 아니며 적용 전 전문가 확인이 필요하다'는 면책 문구.
 
+위 1~5번 항목만 출력하세요. 추가 질문·제안·코멘트는 절대 생성하지 마세요. 훈련 매뉴얼 영상 섹션은 앱에서 자동으로 추가하므로 출력하지 마세요.
 선수의 이름 등 개인 식별정보는 포함하지 않았습니다. 안전과 발달 단계를 최우선으로 설계해 주세요.`;
     }
 
@@ -2093,6 +2093,23 @@ ${videoPrompt}
       };
     }
     /* 마크다운 → HTML 미니 파서 (AI 붙여넣기 결과용) */
+    /* AI 붙여넣기 결과에서 영상 섹션·면책 섹션·질문 블록 제거 */
+    function stripAIOutput(txt) {
+      if (!txt) return '';
+      var lines = txt.split(/\r?\n/);
+      var result = [], skip = false;
+      for (var i = 0; i < lines.length; i++) {
+        var l = lines[i], t = l.trim();
+        // Q1./Q2. 등 추가 질문 줄 건너뜀
+        if (/^Q\d+[\.\)]/.test(t)) continue;
+        // 영상 섹션 또는 면책 섹션 헤딩 만나면 이후 생략
+        if (/훈련\s*매뉴얼\s*영상/.test(t) || /^#{1,4}\s*(면책|disclaimer)/i.test(t)) break;
+        if (!skip) result.push(l);
+      }
+      while (result.length && !result[result.length - 1].trim()) result.pop();
+      return result.join('\n');
+    }
+
     function mdToHtml(md) {
       if (!md) return '';
       var lines = md.split(/\r?\n/);
